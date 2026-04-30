@@ -12,6 +12,7 @@ import { Search, Bell, User, LogOut } from 'lucide-vue-next';
 import { UserRole, Student } from './types';
 
 const activeTab = ref('dashboard');
+const isSidebarOpen = ref(false);
 const authState = ref<{ user: Student | null; role: UserRole | null }>({
   user: null,
   role: null,
@@ -23,6 +24,14 @@ onMounted(() => {
     authState.value = JSON.parse(saved);
   }
 });
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value;
+};
+
+const closeSidebar = () => {
+  isSidebarOpen.value = false;
+};
 
 const handleLogin = (data: { user: Student | null; role: UserRole }) => {
   authState.value = data;
@@ -67,27 +76,38 @@ const setActiveTab = (tab: string) => {
     <Sidebar 
       v-if="authState.role === 'admin'"
       :activeTab="activeTab" 
-      @update:activeTab="setActiveTab" 
+      :isOpen="isSidebarOpen"
+      @update:activeTab="(tab) => { setActiveTab(tab); closeSidebar(); }" 
+      @close="closeSidebar"
     />
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col h-full overflow-hidden">
       <!-- Top Navbar -->
-      <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shrink-0">
-        <div class="flex items-center gap-4 flex-1">
-           <div v-if="authState.role === 'admin'" class="relative max-w-md w-full">
+      <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 z-10 shrink-0">
+        <div class="flex items-center gap-3 sm:gap-4 flex-1">
+           <!-- Mobile Menu Toggle -->
+           <button 
+             v-if="authState.role === 'admin'"
+             @click="toggleSidebar"
+             class="p-2 sm:hidden text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+           >
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+           </button>
+
+           <div v-if="authState.role === 'admin'" class="relative max-w-md w-full hidden sm:block">
               <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
                 placeholder="Global search..." 
-                class="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm outline-none focus:ring-1 focus:ring-indigo-100 transition-all"
+                class="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm outline-none focus:ring-1 focus:ring-indigo-100 transition-all font-medium"
               />
            </div>
            <div v-else class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base">
                 EF
               </div>
-              <h1 class="font-bold text-gray-900">Student Portal</h1>
+              <h1 class="font-bold text-gray-900 text-sm sm:text-base">Student Portal</h1>
            </div>
         </div>
         
@@ -121,8 +141,8 @@ const setActiveTab = (tab: string) => {
       </main>
 
       <!-- Footer Info -->
-      <footer class="h-10 bg-white border-t border-gray-100 px-8 flex items-center justify-between text-[10px] text-gray-400 font-medium uppercase tracking-widest shrink-0">
-         <span>EduFlow Management System v2.0.0</span>
+      <footer class="h-10 bg-white border-t border-gray-100 px-4 sm:px-8 flex items-center justify-between text-[8px] sm:text-[10px] text-gray-400 font-medium uppercase tracking-widest shrink-0">
+         <span class="truncate">EduFlow System v2.0.0</span>
          <span>Role: {{ authState.role }}</span>
       </footer>
     </div>

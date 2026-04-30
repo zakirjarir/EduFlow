@@ -6,7 +6,7 @@ export interface Student {
   name: string;
   roll: string;
   index: string;      // Added Index
-  class: string;
+  section: string;    // Replaced Class with Section
   batch: string;      // Added Batch
   phone: string;
   email: string;      // Added Email for Auth

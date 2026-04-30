@@ -71,48 +71,49 @@ const stats = computed(() => {
 </script>
 
 <template>
-  <div class="p-8 space-y-8 animate-in active">
+  <div class="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in active">
     <!-- Header -->
-    <div class="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-3xl border border-gray-100 shadow-sm">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-           <CreditCard :size="24" />
+        <div class="w-10 sm:w-12 h-10 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+           <CreditCard :size="20" class="sm:hidden" />
+           <CreditCard :size="24" class="hidden sm:block" />
         </div>
         <div>
-          <h2 class="text-xl font-black text-gray-900">Financial Management</h2>
-          <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Revenue and fee tracking</p>
+          <h2 class="text-lg sm:text-xl font-black text-gray-900">Financials</h2>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tracking and processing</p>
         </div>
       </div>
-      <button @click="isModalOpen = true" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
+      <button @click="isModalOpen = true" class="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
         <Plus :size="18" />
-        New Fee Entry
+        New Entry
       </button>
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex items-center justify-between">
+    <div class="grid grid-cols-2 gap-4 sm:gap-6">
+      <div class="bg-indigo-50 p-4 sm:p-6 rounded-3xl border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-           <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1">Total Collections</p>
-           <h3 class="text-3xl font-black text-indigo-900">${{ stats.totalPaid }}</h3>
+           <p class="text-[8px] sm:text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1">Total Paid</p>
+           <h3 class="text-xl sm:text-3xl font-black text-indigo-900">${{ stats.totalPaid }}</h3>
         </div>
-        <TrendingUp class="text-indigo-200" :size="48" />
+        <TrendingUp class="text-indigo-200 hidden sm:block" :size="48" />
       </div>
-      <div class="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex items-center justify-between">
+      <div class="bg-amber-50 p-4 sm:p-6 rounded-3xl border border-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-           <p class="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-1">Total Outstanding</p>
-           <h3 class="text-3xl font-black text-amber-900">${{ stats.totalDue }}</h3>
+           <p class="text-[8px] sm:text-[10px] text-amber-500 font-black uppercase tracking-widest mb-1">Outstanding</p>
+           <h3 class="text-xl sm:text-3xl font-black text-amber-900">${{ stats.totalDue }}</h3>
         </div>
-        <History class="text-amber-200" :size="48" />
+        <History class="text-amber-200 hidden sm:block" :size="48" />
       </div>
     </div>
 
     <!-- Records Table -->
     <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/30 flex gap-4">
-        <div class="relative flex-1">
+      <div class="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/30">
+        <div class="relative">
           <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" :size="18" />
-          <input v-model="search" type="text" placeholder="Filter by student name or roll..." class="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 shadow-sm rounded-2xl text-sm transition-all focus:ring-2 focus:ring-indigo-500" />
+          <input v-model="search" type="text" placeholder="Search and filter..." class="w-full pl-12 pr-4 py-3 sm:py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-sm transition-all focus:ring-2 focus:ring-indigo-500 font-medium" />
         </div>
       </div>
 
@@ -120,39 +121,39 @@ const stats = computed(() => {
         <table class="w-full">
           <thead class="bg-gray-50/50">
             <tr>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
+              <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right sm:text-left">Amount</th>
+              <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 font-medium">
-            <tr v-for="fee in filteredFees" :key="fee.id" class="hover:bg-gray-50/50 transition-colors group">
-              <td class="px-8 py-5">
-                <p class="font-black text-gray-900">{{ getStudent(fee.studentId)?.name || 'Unknown' }}</p>
+            <tr v-for="fee in filteredFees" :key="fee.id" class="hover:bg-gray-50/50 transition-colors group text-sm">
+              <td class="px-6 sm:px-8 py-4 sm:py-5">
+                <p class="font-black text-gray-900 truncate max-w-[120px] sm:max-w-none">{{ getStudent(fee.studentId)?.name || 'Unknown' }}</p>
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Roll: {{ getStudent(fee.studentId)?.roll }}</p>
               </td>
-              <td class="px-8 py-5">
-                <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold uppercase tracking-wider">{{ fee.type }}</span>
+              <td class="hidden sm:table-cell px-8 py-5 capitalize text-xs">
+                {{ fee.type }}
               </td>
-              <td class="px-8 py-5 font-black text-gray-900">${{ fee.amount }}</td>
-              <td class="px-8 py-5 text-center">
+              <td class="px-6 sm:px-8 py-5 font-black text-gray-900 text-right sm:text-left">${{ fee.amount }}</td>
+              <td class="hidden sm:table-cell px-8 py-5 text-center">
                  <div :class="cn(
                    'px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2',
                    fee.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                  )">
-                   <component :is="fee.status === 'paid' ? CheckCircle : AlertCircle" :size="14" />
                    {{ fee.status }}
                  </div>
               </td>
-              <td class="px-8 py-5 text-right">
+              <td class="px-6 sm:px-8 py-5 text-right">
                 <button v-if="fee.status !== 'paid'" @click="handleUpdateStatus(fee.id, 'paid')" class="text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-600 shadow-md shadow-indigo-100 transition-all active:scale-95">Mark Paid</button>
-                <span v-else class="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center justify-end gap-1"><CheckCircle :size="14" /> Receipt Generated</span>
+                <div v-else class="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center justify-end gap-1">
+                   <CheckCircle :size="14" class="sm:hidden" />
+                   <span class="hidden sm:inline">Receipt Ready</span>
+                   <span class="sm:hidden">Paid</span>
+                </div>
               </td>
-            </tr>
-            <tr v-if="filteredFees.length === 0">
-               <td colspan="5" class="py-12 text-center text-gray-400 italic">No matching fee records found.</td>
             </tr>
           </tbody>
         </table>

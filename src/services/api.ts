@@ -20,7 +20,7 @@ const mapStudentFromDb = (data: any): Student => ({
   name: data.name,
   roll: data.roll,
   index: data.index,
-  class: data.class,
+  section: data.section,
   batch: data.batch,
   phone: data.phone,
   email: data.email,

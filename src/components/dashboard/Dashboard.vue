@@ -117,25 +117,27 @@ const statCards = computed(() => [
 </script>
 
 <template>
-  <div class="p-8 space-y-8 animate-in active">
+  <div class="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in active">
     <header>
-      <h2 class="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
-      <p class="text-gray-500">Welcome back, Admin. Here's what's happening at your college.</p>
+      <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+      <p class="text-sm sm:text-base text-gray-500">Welcome back, Admin. Here's what's happening today.</p>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div v-for="(card, idx) in statCards" :key="idx" class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex justify-between items-start mb-4">
-          <div :class="cn('p-3 rounded-xl text-white', card.color)">
-            <component :is="card.icon" :size="24" />
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div v-for="(card, idx) in statCards" :key="idx" class="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-start mb-3 sm:mb-4">
+          <div :class="cn('p-2 sm:p-3 rounded-xl text-white', card.color)">
+            <component :is="card.icon" :size="20" class="sm:hidden" />
+            <component :is="card.icon" :size="24" class="hidden sm:block" />
           </div>
-          <span class="text-xs font-semibold px-2 py-1 bg-gray-50 text-gray-500 rounded-lg flex items-center gap-1">
+          <span class="text-[8px] sm:text-xs font-semibold px-2 py-1 bg-gray-50 text-gray-500 rounded-lg flex items-center gap-1">
             {{ card.trend }}
-            <ArrowUpRight :size="12" class="text-green-500" />
+            <ArrowUpRight :size="10" class="sm:hidden text-green-500" />
+            <ArrowUpRight :size="12" class="hidden sm:block text-green-500" />
           </span>
         </div>
-        <h3 class="text-sm font-medium text-gray-500">{{ card.label }}</h3>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ card.value }}</p>
+        <h3 class="text-[10px] sm:text-sm font-medium text-gray-500">{{ card.label }}</h3>
+        <p class="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{{ card.value }}</p>
       </div>
     </div>
 

@@ -72,52 +72,55 @@ const changeDate = (days: number) => {
 </script>
 
 <template>
-  <div class="p-8 space-y-6">
-    <div class="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+  <div class="p-4 sm:p-8 space-y-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 sm:p-6 rounded-3xl border border-gray-100 shadow-sm">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-           <ClipboardCheck :size="24" />
+        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+           <ClipboardCheck :size="20" class="sm:hidden" />
+           <ClipboardCheck :size="24" class="hidden sm:block" />
         </div>
         <div>
-          <h2 class="text-xl font-black text-gray-900">Attendance System</h2>
-          <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Mark and manage daily records</p>
+          <h2 class="text-lg sm:text-xl font-black text-gray-900">Attendance</h2>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-0.5">Management Records</p>
         </div>
       </div>
       
-      <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl">
-        <button 
-           @click="activeMode = 'list'"
-           :class="cn('px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all', activeMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
-        >List</button>
-        <button 
-           @click="activeMode = 'qr'"
-           :class="cn('px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2', activeMode === 'qr' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
-        >
-          <QrCode :size="14" />
-          QR
-        </button>
-        <button 
-           @click="activeMode = 'face'"
-           :class="cn('px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2', activeMode === 'face' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
-        >
-          <Camera :size="14" />
-          Face
-        </button>
-      </div>
-
-      <div class="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
-        <button @click="changeDate(-1)" class="p-1 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 transition-all">
-          <ChevronLeft :size="20" />
-        </button>
-        <div class="flex items-center gap-2 px-2">
-          <CalendarIcon :size="16" class="text-indigo-600" />
-          <span class="font-black text-xs text-gray-700 uppercase tracking-widest">
-            {{ format(new Date(selectedDate), 'MMM dd, yyyy') }}
-          </span>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
+        <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl">
+          <button 
+             @click="activeMode = 'list'"
+             :class="cn('flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all', activeMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
+          >List</button>
+          <button 
+             @click="activeMode = 'qr'"
+             :class="cn('flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2', activeMode === 'qr' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
+          >
+            <QrCode :size="14" />
+            <span class="sm:hidden lg:inline">QR</span>
+          </button>
+          <button 
+             @click="activeMode = 'face'"
+             :class="cn('flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2', activeMode === 'face' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400')"
+          >
+            <Camera :size="14" />
+            <span class="sm:hidden lg:inline">Face</span>
+          </button>
         </div>
-        <button @click="changeDate(1)" class="p-1 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 transition-all">
-          <ChevronRight :size="20" />
-        </button>
+
+        <div class="flex items-center justify-between gap-3 bg-gray-50 px-3 py-2 rounded-2xl border border-gray-100">
+          <button @click="changeDate(-1)" class="p-1 hover:bg-white hover:rounded-lg text-gray-400 transition-all">
+            <ChevronLeft :size="20" />
+          </button>
+          <div class="flex items-center gap-2">
+            <CalendarIcon :size="14" class="text-indigo-600" />
+            <span class="font-black text-[10px] text-gray-700 uppercase tracking-widest whitespace-nowrap">
+              {{ format(new Date(selectedDate), 'MMM dd') }}
+            </span>
+          </div>
+          <button @click="changeDate(1)" class="p-1 hover:bg-white hover:rounded-lg text-gray-400 transition-all">
+            <ChevronRight :size="20" />
+          </button>
+        </div>
       </div>
     </div>
 

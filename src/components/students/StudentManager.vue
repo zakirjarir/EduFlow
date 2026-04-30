@@ -23,7 +23,7 @@ const formData = ref({
   name: '',
   roll: '',
   index: '',
-  class: 'Class 10',
+  section: 'A',
   batch: '2024',
   phone: '',
   email: '',
@@ -54,7 +54,7 @@ const openModal = (student?: Student) => {
       name: student.name,
       roll: student.roll,
       index: student.index || '',
-      class: student.class,
+      section: student.section,
       batch: student.batch || '2024',
       phone: student.phone,
       email: student.email || '',
@@ -67,7 +67,7 @@ const openModal = (student?: Student) => {
       name: '', 
       roll: '', 
       index: '', 
-      class: 'Class 10', 
+      section: 'A', 
       batch: '2024', 
       phone: '', 
       email: '', 
@@ -107,19 +107,20 @@ const filteredStudents = computed(() =>
 <template>
   <div class="p-8 space-y-8 animate-in active">
     <!-- Header -->
-    <div class="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-3xl border border-gray-100 shadow-sm transition-all">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-           <Users :size="24" />
+        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+           <Users :size="20" class="sm:hidden" />
+           <Users :size="24" class="hidden sm:block" />
         </div>
         <div>
-          <h2 class="text-xl font-black text-gray-900">Student Directory</h2>
-          <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Enrollment and role management</p>
+          <h2 class="text-lg sm:text-xl font-black text-gray-900">Student Directory</h2>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Enrollment and role management</p>
         </div>
       </div>
       <button 
         @click="openModal()"
-        class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+        class="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
       >
         <Plus :size="18" />
         <span>Enroll Student</span>
@@ -127,15 +128,15 @@ const filteredStudents = computed(() =>
     </div>
 
     <!-- Table Section -->
-    <div class="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/30">
+    <div class="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+      <div class="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/30">
         <div class="relative">
           <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" :size="18" />
           <input 
             type="text" 
-            placeholder="Search by student name or roll..." 
+            placeholder="Search students..." 
             v-model="search"
-            class="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 shadow-sm rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            class="w-full pl-12 pr-4 py-3 sm:py-4 bg-white border border-gray-100 shadow-sm rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
           />
         </div>
       </div>
@@ -144,46 +145,36 @@ const filteredStudents = computed(() =>
         <table class="w-full">
           <thead class="bg-gray-50/50">
             <tr>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Details</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Class & Roll</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Permissions</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">QR Identity</th>
-              <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sec & Roll</th>
+              <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">QR Identity</th>
+              <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-indigo-50/30 transition-colors group">
-              <td class="px-8 py-6">
+              <td class="px-6 sm:px-8 py-4 sm:py-6">
                 <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 font-black group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner overflow-hidden border border-gray-100">
+                  <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 font-black group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner overflow-hidden border border-gray-100 shrink-0">
                     <img v-if="student.imageUrl" :src="student.imageUrl" class="w-full h-full object-cover" alt="Student" />
-                    <span v-else>{{ student.name.charAt(0) }}</span>
+                    <span v-else class="text-sm sm:text-base">{{ student.name.charAt(0) }}</span>
                   </div>
-                  <div>
-                    <p class="font-black text-gray-900">{{ student.name }}</p>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">IDX: {{ student.index }} | PH: {{ student.phone }}</p>
+                  <div class="min-w-0">
+                    <p class="font-black text-gray-900 truncate text-sm sm:text-base">{{ student.name }}</p>
+                    <div class="flex items-center gap-2">
+                       <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">IDX: {{ student.index }}</p>
+                       <span v-if="student.isCaptain" class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-black uppercase tracking-widest">Captain</span>
+                    </div>
                   </div>
                 </div>
               </td>
-              <td class="px-8 py-6">
+              <td class="px-6 sm:px-8 py-4 sm:py-6">
                  <div class="flex flex-col">
-                   <span class="text-sm font-black text-gray-700">{{ student.class }} ({{ student.batch }})</span>
+                   <span class="text-sm font-black text-gray-700">Sec {{ student.section }} ({{ student.batch }})</span>
                    <span class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">Roll #{{ student.roll }}</span>
                  </div>
               </td>
-              <td class="px-8 py-6">
-                 <button 
-                  @click="toggleCaptain(student)"
-                  :class="cn(
-                    'px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm',
-                    student.isCaptain ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400'
-                  )"
-                 >
-                   <Star :size="14" :class="student.isCaptain ? 'fill-amber-500' : ''" />
-                   {{ student.isCaptain ? 'Captain' : 'General' }}
-                 </button>
-              </td>
-              <td class="px-8 py-6">
+              <td class="hidden sm:table-cell px-8 py-6">
                  <div class="flex justify-center">
                     <img 
                       :src="`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${student.qrCode}`" 
@@ -192,17 +183,24 @@ const filteredStudents = computed(() =>
                     />
                  </div>
               </td>
-              <td class="px-8 py-6 text-right">
-                <div class="flex justify-end gap-2">
+              <td class="px-6 sm:px-8 py-4 sm:py-6 text-right">
+                <div class="flex justify-end gap-1 sm:gap-2">
+                  <button 
+                    @click="toggleCaptain(student)"
+                    class="p-2 text-gray-400 hover:text-amber-500 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-100 transition-all active:scale-90"
+                    :title="student.isCaptain ? 'Demote from Captain' : 'Make Captain'"
+                  >
+                    <Star :size="18" :class="student.isCaptain ? 'fill-amber-500 text-amber-500' : ''" />
+                  </button>
                   <button 
                     @click="openModal(student)"
-                    class="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-100 transition-all active:scale-90"
+                    class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-100 transition-all active:scale-90"
                   >
                     <Edit2 :size="18" />
                   </button>
                   <button 
                     @click="handleDelete(student.id)"
-                    class="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-100 transition-all active:scale-90"
+                    class="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-100 transition-all active:scale-90"
                   >
                     <Trash2 :size="18" />
                   </button>
@@ -276,17 +274,16 @@ const filteredStudents = computed(() =>
                     />
                   </div>
   
-                  <!-- Class & Batch -->
+                  <!-- Section & Batch -->
                   <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Class Level</label>
-                    <select 
-                      v-model="formData.class"
-                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm appearance-none"
-                    >
-                      <option value="Class 10">Class 10</option>
-                      <option value="Class 11">Class 11</option>
-                      <option value="Class 12">Class 12</option>
-                    </select>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Section Name</label>
+                    <input 
+                      v-model="formData.section"
+                      type="text" 
+                      required
+                      placeholder="e.g. A, B, Rose"
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                    />
                   </div>
                   <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Batch Year</label>

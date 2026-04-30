@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS students (
   name TEXT NOT NULL,
   roll TEXT UNIQUE NOT NULL,
   index TEXT UNIQUE,
-  class TEXT NOT NULL,
+  section TEXT NOT NULL,
   batch TEXT,
   phone TEXT,
   email TEXT UNIQUE,
