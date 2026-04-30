@@ -160,53 +160,55 @@ const stats = computed(() => {
     </div>
 
     <!-- Modal (Modern) -->
-    <Transition name="fade">
-      <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-md">
-        <div class="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-          <div class="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-            <div class="flex items-center gap-3">
-               <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
-                  <DollarSign :size="20" />
-               </div>
-               <h3 class="font-black text-gray-900 text-lg">Record Fee Payment</h3>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-md">
+          <div class="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+            <div class="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+              <div class="flex items-center gap-3">
+                 <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                    <DollarSign :size="20" />
+                 </div>
+                 <h3 class="font-black text-gray-900 text-lg">Record Fee Payment</h3>
+              </div>
+              <button @click="isModalOpen = false" class="w-10 h-10 bg-white shadow-sm border border-gray-100 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 transition-all"><X :size="20" /></button>
             </div>
-            <button @click="isModalOpen = false" class="w-10 h-10 bg-white shadow-sm border border-gray-100 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 transition-all"><X :size="20" /></button>
+            
+            <form @submit.prevent="handleSubmit" class="p-8 space-y-6">
+              <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Select Student</label>
+                <select v-model="formData.studentId" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700">
+                  <option value="">Choose a student...</option>
+                  <option v-for="s in students" :key="s.id" :value="s.id">{{ s.name }} (Roll: {{ s.roll }})</option>
+                </select>
+              </div>
+  
+              <div class="grid grid-cols-2 gap-4">
+                 <div class="space-y-2">
+                   <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Fee Category</label>
+                   <select v-model="formData.type" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700">
+                      <option value="monthly">Monthly Fee</option>
+                      <option value="admission">Admission Fee</option>
+                      <option value="late">Late Fee</option>
+                      <option value="absent">Absent Fee</option>
+                      <option value="fine">Fine / Penalty</option>
+                      <option value="other">Other Fees</option>
+                   </select>
+                 </div>
+                 <div class="space-y-2">
+                   <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Amount ($)</label>
+                   <input v-model="formData.amount" type="number" placeholder="0.00" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700" required />
+                 </div>
+              </div>
+  
+              <button type="submit" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <CheckCircle :size="20" />
+                Complete Transaction
+              </button>
+            </form>
           </div>
-          
-          <form @submit.prevent="handleSubmit" class="p-8 space-y-6">
-            <div class="space-y-2">
-              <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Select Student</label>
-              <select v-model="formData.studentId" required class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700">
-                <option value="">Choose a student...</option>
-                <option v-for="s in students" :key="s.id" :value="s.id">{{ s.name }} (Roll: {{ s.roll }})</option>
-              </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-               <div class="space-y-2">
-                 <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Fee Category</label>
-                 <select v-model="formData.type" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700">
-                    <option value="monthly">Monthly Fee</option>
-                    <option value="admission">Admission Fee</option>
-                    <option value="late">Late Fee</option>
-                    <option value="absent">Absent Fee</option>
-                    <option value="fine">Fine / Penalty</option>
-                    <option value="other">Other Fees</option>
-                 </select>
-               </div>
-               <div class="space-y-2">
-                 <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Amount ($)</label>
-                 <input v-model="formData.amount" type="number" placeholder="0.00" class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700" required />
-               </div>
-            </div>
-
-            <button type="submit" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
-              <CheckCircle :size="20" />
-              Complete Transaction
-            </button>
-          </form>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>

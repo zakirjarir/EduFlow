@@ -222,148 +222,150 @@ const filteredStudents = computed(() =>
     </div>
 
     <!-- Modal -->
-    <Transition name="fade">
-      <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md">
-        <div class="bg-white rounded-[32px] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col max-h-[90vh]">
-          <!-- Modal Header (Sticky) -->
-          <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-white shrink-0">
-            <div class="flex items-center gap-3">
-               <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                  <Plus :size="20" />
-               </div>
-               <div>
-                 <h3 class="font-black text-gray-900 text-lg leading-tight">{{ editingStudent ? 'Update Profile' : 'Enroll Student' }}</h3>
-                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Academic Record Management</p>
-               </div>
-            </div>
-            <button @click="closeModal" class="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"><X :size="20" /></button>
-          </div>
-          
-          <!-- Modal Body (Scrollable) -->
-          <div class="overflow-y-auto flex-1 p-6 space-y-6 bg-gray-50/20">
-            <form @submit.prevent="handleSubmit" id="studentForm" class="space-y-6">
-              <!-- Name Section -->
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Full Identification Name</label>
-                <input 
-                  v-model="formData.name"
-                  type="text" 
-                  required
-                  class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700 shadow-sm"
-                  placeholder="e.g. Zakir Jarir"
-                />
-              </div>
-              
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <!-- Roll & Index -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Academic Roll #</label>
-                  <input 
-                    v-model="formData.roll"
-                    type="text" 
-                    required
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-indigo-600 shadow-sm"
-                  />
-                </div>
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Index Number</label>
-                  <input 
-                    v-model="formData.index"
-                    type="text" 
-                    required
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
-                  />
-                </div>
-
-                <!-- Class & Batch -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Class Level</label>
-                  <select 
-                    v-model="formData.class"
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm appearance-none"
-                  >
-                    <option value="Class 10">Class 10</option>
-                    <option value="Class 11">Class 11</option>
-                    <option value="Class 12">Class 12</option>
-                  </select>
-                </div>
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Batch Year</label>
-                  <input 
-                    v-model="formData.batch"
-                    type="text" 
-                    required
-                    placeholder="e.g. 2024"
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
-                  />
-                </div>
-
-                <!-- Phone & Email -->
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Phone / Mobile</label>
-                  <input 
-                    v-model="formData.phone"
-                    type="tel" 
-                    required
-                    placeholder="e.g. +880..."
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
-                  />
-                </div>
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Auth Email</label>
-                  <input 
-                    v-model="formData.email"
-                    type="email" 
-                    required
-                    placeholder="student@eduflow.com"
-                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <!-- Image URL -->
-              <div class="space-y-2">
-                 <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Portrait Image URL</label>
-                 <input 
-                   v-model="formData.imageUrl"
-                   type="text" 
-                   placeholder="https://images.unsplash.com/..."
-                   class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
-                 />
-              </div>
-
-              <!-- Roles -->
-              <div class="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100 shadow-sm">
-                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
-                      <Star :size="16" class="fill-current" />
-                    </div>
-                    <div>
-                      <p class="font-black text-amber-900 text-xs">Assign Head Captain</p>
-                      <p class="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Grants attendance privileges</p>
-                    </div>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-md">
+          <div class="bg-white rounded-[32px] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <!-- Modal Header (Sticky) -->
+            <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-white shrink-0">
+              <div class="flex items-center gap-3">
+                 <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                    <Plus :size="20" />
                  </div>
-                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" v-model="formData.isCaptain" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 transition-all"></div>
-                 </label>
+                 <div>
+                   <h3 class="font-black text-gray-900 text-lg leading-tight">{{ editingStudent ? 'Update Profile' : 'Enroll Student' }}</h3>
+                   <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Academic Record Management</p>
+                 </div>
               </div>
-            </form>
-          </div>
-
-          <!-- Modal Footer (Sticky) -->
-          <div class="p-6 border-t border-gray-50 bg-white shrink-0">
-            <button 
-              type="submit" 
-              form="studentForm"
-              class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <ShieldCheck :size="18" />
-              {{ editingStudent ? 'Authorize Changes' : 'Confirm Enrollment' }}
-            </button>
+              <button @click="closeModal" class="w-10 h-10 bg-gray-50 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"><X :size="20" /></button>
+            </div>
+            
+            <!-- Modal Body (Scrollable) -->
+            <div class="overflow-y-auto flex-1 p-6 space-y-6 bg-gray-50/20">
+              <form @submit.prevent="handleSubmit" id="studentForm" class="space-y-6">
+                <!-- Name Section -->
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Full Identification Name</label>
+                  <input 
+                    v-model="formData.name"
+                    type="text" 
+                    required
+                    class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-gray-700 shadow-sm"
+                    placeholder="e.g. Zakir Jarir"
+                  />
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <!-- Roll & Index -->
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Academic Roll #</label>
+                    <input 
+                      v-model="formData.roll"
+                      type="text" 
+                      required
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-indigo-600 shadow-sm"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Index Number</label>
+                    <input 
+                      v-model="formData.index"
+                      type="text" 
+                      required
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                    />
+                  </div>
+  
+                  <!-- Class & Batch -->
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Class Level</label>
+                    <select 
+                      v-model="formData.class"
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm appearance-none"
+                    >
+                      <option value="Class 10">Class 10</option>
+                      <option value="Class 11">Class 11</option>
+                      <option value="Class 12">Class 12</option>
+                    </select>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Batch Year</label>
+                    <input 
+                      v-model="formData.batch"
+                      type="text" 
+                      required
+                      placeholder="e.g. 2024"
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                    />
+                  </div>
+  
+                  <!-- Phone & Email -->
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Phone / Mobile</label>
+                    <input 
+                      v-model="formData.phone"
+                      type="tel" 
+                      required
+                      placeholder="e.g. +880..."
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Auth Email</label>
+                    <input 
+                      v-model="formData.email"
+                      type="email" 
+                      required
+                      placeholder="student@eduflow.com"
+                      class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                    />
+                  </div>
+                </div>
+  
+                <!-- Image URL -->
+                <div class="space-y-2">
+                   <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Portrait Image URL</label>
+                   <input 
+                     v-model="formData.imageUrl"
+                     type="text" 
+                     placeholder="https://images.unsplash.com/..."
+                     class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                   />
+                </div>
+  
+                <!-- Roles -->
+                <div class="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100 shadow-sm">
+                   <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+                        <Star :size="16" class="fill-current" />
+                      </div>
+                      <div>
+                        <p class="font-black text-amber-900 text-xs">Assign Head Captain</p>
+                        <p class="text-[9px] text-amber-600 font-bold uppercase tracking-widest">Grants attendance privileges</p>
+                      </div>
+                   </div>
+                   <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" v-model="formData.isCaptain" class="sr-only peer">
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 transition-all"></div>
+                   </label>
+                </div>
+              </form>
+            </div>
+  
+            <!-- Modal Footer (Sticky) -->
+            <div class="p-6 border-t border-gray-50 bg-white shrink-0">
+              <button 
+                type="submit" 
+                form="studentForm"
+                class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <ShieldCheck :size="18" />
+                {{ editingStudent ? 'Authorize Changes' : 'Confirm Enrollment' }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
