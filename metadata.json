@@ -1,0 +1,13 @@
+{
+  "name": "EduFlow - Modern Student Management System",
+  "description": "A production-level college student management system with attendance, QR scanning, fees tracking, and an admin dashboard.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "Student Database",
+    "QR Attendance",
+    "Fees Management",
+    "Analytics Dashboard"
+  ]
+}
