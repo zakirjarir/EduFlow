@@ -173,50 +173,54 @@ const changeDate = (days: number) => {
           <table class="w-full">
             <thead class="bg-gray-50/50">
               <tr>
-                <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Info</th>
-                <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Roll</th>
-                <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                <th class="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Info</th>
+                <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Roll</th>
+                <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-indigo-50/30 transition-colors group">
-                <td class="px-8 py-5">
+                <td class="px-6 sm:px-8 py-4 sm:py-5">
                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                      <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all text-xs sm:text-base shrink-0">
                         {{ student.name.charAt(0) }}
                       </div>
-                      <span class="font-black text-gray-900">{{ student.name }}</span>
+                      <div class="min-w-0">
+                        <span class="font-black text-gray-900 block truncate text-sm sm:text-base">{{ student.name }}</span>
+                        <span class="sm:hidden text-[10px] text-gray-400 font-bold uppercase tracking-widest">#{{ student.roll }}</span>
+                      </div>
                    </div>
                 </td>
-                <td class="px-8 py-5">
+                <td class="hidden sm:table-cell px-8 py-5">
                    <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg font-mono text-xs font-bold">{{ student.roll }}</span>
                 </td>
-                <td class="px-8 py-5 text-center">
+                <td class="px-6 sm:px-8 py-4 sm:py-5 text-center">
                    <span :class="cn(
-                      'px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2',
+                      'px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2',
                       getStatus(student.id) === 'present' ? 'bg-emerald-50 text-emerald-600' :
                       getStatus(student.id) === 'absent' ? 'bg-red-50 text-red-600' :
                       getStatus(student.id) === 'late' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
                    )">
-                      <div v-if="getStatus(student.id)" class="w-1.5 h-1.5 rounded-full bg-current"></div>
-                      {{ getStatus(student.id) || 'Not Marked' }}
+                      <div v-if="getStatus(student.id)" class="hidden sm:block w-1.5 h-1.5 rounded-full bg-current"></div>
+                      {{ getStatus(student.id) ? (getStatus(student.id) === 'present' ? 'P' : getStatus(student.id) === 'absent' ? 'A' : 'L') : 'N/A' }}
+                      <span class="hidden sm:inline">{{ getStatus(student.id) ? '' : 'Mark' }}</span>
                    </span>
                 </td>
-                <td class="px-8 py-5 text-right">
-                  <div class="flex justify-end gap-3">
+                <td class="px-6 sm:px-8 py-4 sm:py-5 text-right">
+                  <div class="flex justify-end gap-1 sm:gap-3">
                     <button 
                       @click="handleMark(student.id, 'present')"
-                      :class="cn('p-2.5 rounded-xl transition-all shadow-sm', getStatus(student.id) === 'present' ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')"
-                    ><CheckCircle2 :size="18" /></button>
+                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'present' ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')"
+                    ><CheckCircle2 :size="16" class="sm:hidden" /><CheckCircle2 :size="18" class="hidden sm:block" /></button>
                     <button 
                       @click="handleMark(student.id, 'absent')"
-                      :class="cn('p-2.5 rounded-xl transition-all shadow-sm', getStatus(student.id) === 'absent' ? 'bg-red-600 text-white shadow-red-200' : 'bg-red-50 text-red-600 hover:bg-red-100')"
-                    ><XCircle :size="18" /></button>
+                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'absent' ? 'bg-red-600 text-white shadow-red-200' : 'bg-red-50 text-red-600 hover:bg-red-100')"
+                    ><XCircle :size="16" class="sm:hidden" /><XCircle :size="18" class="hidden sm:block" /></button>
                     <button 
                       @click="handleMark(student.id, 'late')"
-                      :class="cn('p-2.5 rounded-xl transition-all shadow-sm', getStatus(student.id) === 'late' ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')"
-                    ><Clock :size="18" /></button>
+                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'late' ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')"
+                    ><Clock :size="16" class="sm:hidden" /><Clock :size="18" class="hidden sm:block" /></button>
                   </div>
                 </td>
               </tr>
