@@ -1,6 +1,6 @@
 {
-  "name": "EduFlow - Modern Student Management System",
-  "description": "A production-level college student management system with attendance, QR scanning, fees tracking, and an admin dashboard.",
+  "name": "EduFlow - Enterprise Student Management",
+  "description": "A high-end student management system with Supabase integration, Face-Recognition Attendance, Student Portal, Captain Role, and comprehensive Financial tracking.",
   "requestFramePermissions": [
     "camera"
   ],
