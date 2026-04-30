@@ -14,6 +14,41 @@ const setStorage = <T>(key: string, data: T) => {
 // Check if we should use Supabase (if keys are provided)
 const useSupabase = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// --- Helpers for Supabase Field Mapping ---
+const mapStudentFromDb = (data: any): Student => ({
+  id: data.id,
+  name: data.name,
+  roll: data.roll,
+  index: data.index,
+  class: data.class,
+  batch: data.batch,
+  phone: data.phone,
+  email: data.email,
+  imageUrl: data.image_url,
+  qrCode: data.qr_code,
+  isCaptain: data.is_captain,
+  userId: data.user_id,
+  createdAt: data.created_at
+});
+
+const mapStudentToDb = (data: Partial<Student>) => {
+  const mapped: any = { ...data };
+  if (data.imageUrl !== undefined) mapped.image_url = data.imageUrl;
+  if (data.qrCode !== undefined) mapped.qr_code = data.qrCode;
+  if (data.isCaptain !== undefined) mapped.is_captain = data.isCaptain;
+  if (data.userId !== undefined) mapped.user_id = data.userId;
+  if (data.createdAt !== undefined) mapped.created_at = data.createdAt;
+  
+  // Remove camelCase keys that were mapped
+  delete mapped.imageUrl;
+  delete mapped.qrCode;
+  delete mapped.isCaptain;
+  delete mapped.userId;
+  delete mapped.createdAt;
+  
+  return mapped;
+};
+
 export const api = {
   // --- Auth via Supabase ---
   auth: {
@@ -41,11 +76,13 @@ export const api = {
            throw new Error('Student record not found for this account.');
         }
 
-        if (!student.isCaptain) {
+        const mappedStudent = mapStudentFromDb(student);
+
+        if (!mappedStudent.isCaptain) {
           throw new Error('Access Denied: Only Class Captains can access this portal.');
         }
 
-        return { user: student, role: 'student' };
+        return { user: mappedStudent, role: 'student' };
       }
 
       // Local Fallback
@@ -68,10 +105,7 @@ export const api = {
       if (useSupabase) {
         const { data, error } = await supabase.from('students').select('*').order('created_at', { ascending: false });
         if (!error && data) {
-           return data.map(item => ({
-             ...item,
-             imageUrl: item.image_url // Mapping snake_case to camelCase
-           }));
+           return data.map(mapStudentFromDb);
         }
       }
       return getStorage<Student[]>('ef_students', []);
@@ -85,14 +119,12 @@ export const api = {
       };
 
       if (useSupabase) {
-        // In a real app, you'd create the auth user here via edge function or service role
-        // For this demo, we insert into the public table. 
-        // Integration with Supabase Auth signup would happen in a registration flow.
-        const { data, error } = await supabase.from('students').insert({
-          ...newStudent,
-          image_url: student.imageUrl // Mapping camelCase to snake_case
-        }).select().single();
-        if (!error && data) return data;
+        const { data, error } = await supabase
+          .from('students')
+          .insert(mapStudentToDb(newStudent))
+          .select()
+          .single();
+        if (!error && data) return mapStudentFromDb(data);
       }
 
       const students = await api.students.getAll();
@@ -101,8 +133,13 @@ export const api = {
     },
     update: async (id: string, updates: Partial<Student>): Promise<Student> => {
       if (useSupabase) {
-        const { data, error } = await supabase.from('students').update(updates).eq('id', id).select().single();
-        if (!error && data) return data;
+        const { data, error } = await supabase
+          .from('students')
+          .update(mapStudentToDb(updates))
+          .eq('id', id)
+          .select()
+          .single();
+        if (!error && data) return mapStudentFromDb(data);
       }
 
       const students = await api.students.getAll();
