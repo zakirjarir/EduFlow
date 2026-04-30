@@ -8,8 +8,8 @@ const emit = defineEmits<{
   (e: 'login', data: { user: Student | null; role: UserRole }): void
 }>();
 
-const roll = ref('');
-const phone = ref('');
+const email = ref('');
+const password = ref('');
 const error = ref('');
 const isLoading = ref(false);
 
@@ -17,7 +17,7 @@ const handleLogin = async () => {
   isLoading.value = true;
   error.value = '';
   try {
-    const result = await api.auth.login(roll.value, phone.value);
+    const result = await api.auth.login(email.value, password.value);
     emit('login', result);
   } catch (err: any) {
     error.value = err.message || 'Login failed. Please check credentials.';
@@ -45,14 +45,14 @@ const handleLogin = async () => {
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Roll Number</label>
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Email Address</label>
             <div class="relative">
               <input 
-                v-model="roll"
-                type="text" 
+                v-model="email"
+                type="email" 
                 required
                 class="w-full pl-4 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                placeholder="e.g. 101 or 'admin'"
+                placeholder="e.g. admin@eduflow.com"
               />
             </div>
           </div>
@@ -60,11 +60,11 @@ const handleLogin = async () => {
           <div>
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Password</label>
             <input 
-              v-model="phone"
+              v-model="password"
               type="password" 
               required
               class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              placeholder="e.g. your password or 'admin'"
+              placeholder="e.g. your password or 'admin123'"
             />
           </div>
 

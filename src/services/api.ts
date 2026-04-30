@@ -15,16 +15,42 @@ const setStorage = <T>(key: string, data: T) => {
 const useSupabase = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const api = {
-  // --- Auth Simulation ---
+  // --- Auth via Supabase ---
   auth: {
-    login: async (roll: string, password: string): Promise<{ user: Student | null; role: UserRole }> => {
-      // For Admin (Demo purpose)
-      if (roll === 'admin' && password === 'admin') {
+    login: async (email: string, password: string): Promise<{ user: Student | null; role: UserRole }> => {
+      // For Admin (Demo purpose usually uses fixed secrets or admin table)
+      if (email === 'admin@eduflow.com' && password === 'admin123') {
         return { user: null, role: 'admin' };
       }
 
+      if (useSupabase) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) throw authError;
+
+        const { data: student, error: studentError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', authData.user?.id)
+          .single();
+
+        if (studentError || !student) {
+           throw new Error('Student record not found for this account.');
+        }
+
+        if (!student.isCaptain) {
+          throw new Error('Access Denied: Only Class Captains can access this portal.');
+        }
+
+        return { user: student, role: 'student' };
+      }
+
+      // Local Fallback
       const students = await api.students.getAll();
-      const student = students.find(s => s.roll === roll && (s.password === password || (!s.password && s.phone === password)));
+      const student = students.find(s => s.email === email && s.phone === password); // Simple fallback
       
       if (student) {
         if (!student.isCaptain) {
@@ -32,7 +58,7 @@ export const api = {
         }
         return { user: student, role: 'student' };
       }
-      throw new Error('Invalid roll number or password');
+      throw new Error('Invalid email or password');
     }
   },
 
@@ -40,8 +66,13 @@ export const api = {
   students: {
     getAll: async (): Promise<Student[]> => {
       if (useSupabase) {
-        const { data, error } = await supabase.from('students').select('*');
-        if (!error && data) return data;
+        const { data, error } = await supabase.from('students').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+           return data.map(item => ({
+             ...item,
+             imageUrl: item.image_url // Mapping snake_case to camelCase
+           }));
+        }
       }
       return getStorage<Student[]>('ef_students', []);
     },
@@ -51,11 +82,16 @@ export const api = {
         id: crypto.randomUUID(),
         qrCode: `STU-${Date.now()}`,
         createdAt: Date.now(),
-        password: student.password || student.phone, // Default password to phone if not set
       };
 
       if (useSupabase) {
-        const { data, error } = await supabase.from('students').insert(newStudent).select().single();
+        // In a real app, you'd create the auth user here via edge function or service role
+        // For this demo, we insert into the public table. 
+        // Integration with Supabase Auth signup would happen in a registration flow.
+        const { data, error } = await supabase.from('students').insert({
+          ...newStudent,
+          image_url: student.imageUrl // Mapping camelCase to snake_case
+        }).select().single();
         if (!error && data) return data;
       }
 

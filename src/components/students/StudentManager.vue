@@ -22,9 +22,12 @@ const editingStudent = ref<Student | null>(null);
 const formData = ref({
   name: '',
   roll: '',
+  index: '',
   class: 'Class 10',
+  batch: '2024',
   phone: '',
-  password: '',
+  email: '',
+  imageUrl: '',
   isCaptain: false
 });
 
@@ -50,14 +53,27 @@ const openModal = (student?: Student) => {
     formData.value = {
       name: student.name,
       roll: student.roll,
+      index: student.index || '',
       class: student.class,
+      batch: student.batch || '2024',
       phone: student.phone,
-      password: student.password || '',
+      email: student.email || '',
+      imageUrl: student.imageUrl || '',
       isCaptain: student.isCaptain || false
     };
   } else {
     editingStudent.value = null;
-    formData.value = { name: '', roll: '', class: 'Class 10', phone: '', password: '', isCaptain: false };
+    formData.value = { 
+      name: '', 
+      roll: '', 
+      index: '', 
+      class: 'Class 10', 
+      batch: '2024', 
+      phone: '', 
+      email: '', 
+      imageUrl: '', 
+      isCaptain: false 
+    };
   }
   isModalOpen.value = true;
 };
@@ -138,18 +154,19 @@ const filteredStudents = computed(() =>
             <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-indigo-50/30 transition-colors group">
               <td class="px-8 py-6">
                 <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 font-black group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-                    {{ student.name.charAt(0) }}
+                  <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 font-black group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner overflow-hidden border border-gray-100">
+                    <img v-if="student.imageUrl" :src="student.imageUrl" class="w-full h-full object-cover" alt="Student" />
+                    <span v-else>{{ student.name.charAt(0) }}</span>
                   </div>
                   <div>
                     <p class="font-black text-gray-900">{{ student.name }}</p>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">PH: {{ student.phone }}</p>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">IDX: {{ student.index }} | PH: {{ student.phone }}</p>
                   </div>
                 </div>
               </td>
               <td class="px-8 py-6">
                  <div class="flex flex-col">
-                   <span class="text-sm font-black text-gray-700">{{ student.class }}</span>
+                   <span class="text-sm font-black text-gray-700">{{ student.class }} ({{ student.batch }})</span>
                    <span class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">Roll #{{ student.roll }}</span>
                  </div>
               </td>
@@ -240,6 +257,18 @@ const filteredStudents = computed(() =>
                 />
               </div>
               <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Index Number</label>
+                <input 
+                  v-model="formData.index"
+                  type="text" 
+                  required
+                  class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-gray-700"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
                 <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Class Level</label>
                 <select 
                   v-model="formData.class"
@@ -249,6 +278,16 @@ const filteredStudents = computed(() =>
                   <option value="Class 11">Class 11</option>
                   <option value="Class 12">Class 12</option>
                 </select>
+              </div>
+              <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Batch Year</label>
+                <input 
+                  v-model="formData.batch"
+                  type="text" 
+                  required
+                  placeholder="e.g. 2024"
+                  class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                />
               </div>
             </div>
 
@@ -264,14 +303,25 @@ const filteredStudents = computed(() =>
                 />
               </div>
               <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Access Password</label>
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Auth Email</label>
                 <input 
-                  v-model="formData.password"
-                  type="text" 
-                  placeholder="Set password"
+                  v-model="formData.email"
+                  type="email" 
+                  required
+                  placeholder="student@eduflow.com"
                   class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
                 />
               </div>
+            </div>
+
+            <div class="space-y-2">
+               <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Portrait Image URL</label>
+               <input 
+                 v-model="formData.imageUrl"
+                 type="text" 
+                 placeholder="https://images.unsplash.com/..."
+                 class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+               />
             </div>
 
             <div class="flex items-center justify-between p-5 bg-amber-50 rounded-2xl border border-amber-100">

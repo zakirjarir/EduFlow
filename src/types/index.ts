@@ -5,12 +5,15 @@ export interface Student {
   id: string;
   name: string;
   roll: string;
+  index: string;      // Added Index
   class: string;
+  batch: string;      // Added Batch
   phone: string;
-  password?: string; // For login
+  email: string;      // Added Email for Auth
+  imageUrl?: string;  // Added Image URL
   qrCode: string;
-  isCaptain: boolean; // Captain can take attendance
-  userId?: string;    // Links to auth record
+  isCaptain: boolean;
+  userId?: string;
   createdAt: number;
 }
 
