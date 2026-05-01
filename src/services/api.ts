@@ -52,7 +52,7 @@ export const api = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (!profileError && profile) {
         if (profile.role === 'admin') {
@@ -65,7 +65,7 @@ export const api = {
         .from('students')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (student) {
         const mappedStudent = mapStudentFromDb(student);
