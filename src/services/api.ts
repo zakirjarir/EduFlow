@@ -154,7 +154,12 @@ export const api = {
           .insert(mapStudentToDb(newStudent))
           .select()
           .single();
-        if (!error && data) return mapStudentFromDb(data);
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          throw error;
+        }
+        if (data) return mapStudentFromDb(data);
       }
 
       const students = await api.students.getAll();
@@ -169,7 +174,12 @@ export const api = {
           .eq('id', id)
           .select()
           .single();
-        if (!error && data) return mapStudentFromDb(data);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          throw error;
+        }
+        if (data) return mapStudentFromDb(data);
       }
 
       const students = await api.students.getAll();
@@ -181,7 +191,11 @@ export const api = {
     },
     delete: async (id: string): Promise<void> => {
       if (useSupabase) {
-        await supabase.from('students').delete().eq('id', id);
+        const { error } = await supabase.from('students').delete().eq('id', id);
+        if (error) {
+          console.error('Supabase delete error:', error);
+          throw error;
+        }
       }
       const students = await api.students.getAll();
       setStorage('ef_students', students.filter(s => s.id !== id));

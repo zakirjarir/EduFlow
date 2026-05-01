@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   Star,
   Camera,
-  RefreshCcw
+  RefreshCcw,
+  Upload,
+  AlertCircle
 } from 'lucide-vue-next';
 import { cn } from '../../lib/utils';
 
@@ -23,6 +25,26 @@ const editingStudent = ref<Student | null>(null);
 const videoRef = ref<HTMLVideoElement | null>(null);
 const isCameraActive = ref(false);
 const capturedImage = ref<string | null>(null);
+const isSaving = ref(false);
+const saveError = ref('');
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    const file = target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large (max 5MB)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      capturedImage.value = e.target?.result as string;
+      formData.value.imageUrl = capturedImage.value;
+      stopCamera();
+    };
+    reader.readAsDataURL(file);
+  }
+};
 
 const startCamera = async () => {
   try {
@@ -86,14 +108,21 @@ const loadStudents = async () => {
 onMounted(loadStudents);
 
 const handleSubmit = async () => {
+  isSaving.value = true;
+  saveError.value = '';
   try {
     let finalImageUrl = formData.value.imageUrl;
     
     // If it's a new base64 capture, upload it first
     if (finalImageUrl.startsWith('data:')) {
       const uploadId = editingStudent.value?.id || `new-${Date.now()}`;
-      finalImageUrl = await api.students.uploadImage(finalImageUrl, uploadId);
-      formData.value.imageUrl = finalImageUrl;
+      try {
+        finalImageUrl = await api.students.uploadImage(finalImageUrl, uploadId);
+        formData.value.imageUrl = finalImageUrl;
+      } catch (uploadErr) {
+        console.warn('Storage upload failed, keeping base64:', uploadErr);
+        // We continue, the base64 will be saved to the DB column directly
+      }
     }
 
     if (editingStudent.value) {
@@ -103,8 +132,11 @@ const handleSubmit = async () => {
     }
     closeModal();
     loadStudents();
-  } catch (err) {
+  } catch (err: any) {
     console.error('Submit error:', err);
+    saveError.value = err.message || 'Failed to save student record. Check console for details.';
+  } finally {
+    isSaving.value = false;
   }
 };
 
@@ -303,6 +335,12 @@ const filteredStudents = computed(() =>
             
             <!-- Modal Body (Scrollable) -->
             <div class="overflow-y-auto flex-1 p-6 space-y-6 bg-gray-50/20">
+              <!-- Error Alert -->
+              <div v-if="saveError" class="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold animate-in bounce-in">
+                <AlertCircle :size="18" />
+                {{ saveError }}
+              </div>
+
               <form @submit.prevent="handleSubmit" id="studentForm" class="space-y-6">
                 <!-- Name Section -->
                 <div class="space-y-2">
@@ -386,15 +424,22 @@ const filteredStudents = computed(() =>
                 <div class="space-y-4 p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100/50">
                   <div class="flex items-center justify-between">
                     <label class="text-[10px] font-black uppercase tracking-widest text-indigo-400">Student Identity Portrait</label>
-                    <button 
-                      v-if="!isCameraActive && !formData.imageUrl"
-                      type="button"
-                      @click="startCamera"
-                      class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                    >
-                      <Camera :size="14" />
-                      Open Camera
-                    </button>
+                    <div class="flex items-center gap-3">
+                      <label class="cursor-pointer text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors">
+                        <Upload :size="14" />
+                        Upload
+                        <input type="file" class="hidden" accept="image/*" @change="handleFileUpload" />
+                      </label>
+                      <button 
+                        v-if="!isCameraActive && !formData.imageUrl"
+                        type="button"
+                        @click="startCamera"
+                        class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+                      >
+                        <Camera :size="14" />
+                        Camera
+                      </button>
+                    </div>
                   </div>
 
                   <div class="relative aspect-square w-full max-w-[240px] mx-auto bg-white rounded-3xl border-2 border-dashed border-indigo-200 overflow-hidden flex items-center justify-center group">
@@ -482,10 +527,12 @@ const filteredStudents = computed(() =>
               <button 
                 type="submit" 
                 form="studentForm"
-                class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                :disabled="isSaving"
+                class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ShieldCheck :size="18" />
-                {{ editingStudent ? 'Authorize Changes' : 'Confirm Enrollment' }}
+                <RefreshCw v-if="isSaving" class="animate-spin" :size="18" />
+                <ShieldCheck v-else :size="18" />
+                {{ isSaving ? 'Processing...' : (editingStudent ? 'Authorize Changes' : 'Confirm Enrollment') }}
               </button>
             </div>
           </div>
