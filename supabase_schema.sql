@@ -47,11 +47,29 @@ CREATE TABLE IF NOT EXISTS fees (
   timestamp BIGINT DEFAULT extract(epoch from now() ) * 1000
 );
 
--- Row Level Security (RLS) - Basic Disable for Demo
-ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
-ALTER TABLE students DISABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance DISABLE ROW LEVEL SECURITY;
-ALTER TABLE fees DISABLE ROW LEVEL SECURITY;
+-- Row Level Security (RLS)
+-- We enable RLS and add policies so that users can manage their own data securely.
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fees ENABLE ROW LEVEL SECURITY;
+
+-- Profiles Policies
+CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Students Policies
+-- Allow authenticated users to read all students
+CREATE POLICY "Everyone can view students" ON students FOR SELECT USING (true);
+-- Allow authenticated users (Admins) to manage students
+CREATE POLICY "Authenticated users can manage students" ON students FOR ALL USING (auth.role() = 'authenticated');
+
+-- Attendance Policies
+CREATE POLICY "Authenticated users can manage attendance" ON attendance FOR ALL USING (auth.role() = 'authenticated');
+
+-- Fees Policies
+CREATE POLICY "Authenticated users can manage fees" ON fees FOR ALL USING (auth.role() = 'authenticated');
 
 -- 5. Storage Bucket Setup (Instructions)
 -- Note: You must manually create a public bucket named 'student-portraits' in the Supabase Dashboard
