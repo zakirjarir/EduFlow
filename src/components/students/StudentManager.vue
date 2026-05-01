@@ -10,7 +10,9 @@ import {
   X,
   Users,
   ShieldCheck,
-  Star
+  Star,
+  Camera,
+  RefreshCcw
 } from 'lucide-vue-next';
 import { cn } from '../../lib/utils';
 
@@ -18,6 +20,52 @@ const students = ref<Student[]>([]);
 const search = ref('');
 const isModalOpen = ref(false);
 const editingStudent = ref<Student | null>(null);
+const videoRef = ref<HTMLVideoElement | null>(null);
+const isCameraActive = ref(false);
+const capturedImage = ref<string | null>(null);
+
+const startCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    isCameraActive.value = true;
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream;
+    }
+  } catch (err) {
+    console.error("Error accessing camera:", err);
+    alert("Could not access camera. Please check permissions.");
+  }
+};
+
+const stopCamera = () => {
+  if (videoRef.value && videoRef.value.srcObject) {
+    const stream = videoRef.value.srcObject as MediaStream;
+    stream.getTracks().forEach(track => track.stop());
+    videoRef.value.srcObject = null;
+  }
+  isCameraActive.value = false;
+};
+
+const capturePhoto = () => {
+  if (videoRef.value) {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.value.videoWidth;
+    canvas.height = videoRef.value.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.value, 0, 0);
+      capturedImage.value = canvas.toDataURL('image/jpeg');
+      formData.value.imageUrl = capturedImage.value;
+      stopCamera();
+    }
+  }
+};
+
+const resetPhoto = () => {
+  capturedImage.value = null;
+  formData.value.imageUrl = '';
+  startCamera();
+};
 
 const formData = ref({
   name: '',
@@ -81,6 +129,8 @@ const openModal = (student?: Student) => {
 const closeModal = () => {
   isModalOpen.value = false;
   editingStudent.value = null;
+  stopCamera();
+  capturedImage.value = null;
 };
 
 const handleDelete = async (id: string) => {
@@ -319,14 +369,79 @@ const filteredStudents = computed(() =>
                   </div>
                 </div>
   
-                <!-- Image URL -->
+                <!-- Photo Section -->
+                <div class="space-y-4 p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100/50">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-indigo-400">Student Identity Portrait</label>
+                    <button 
+                      v-if="!isCameraActive && !formData.imageUrl"
+                      type="button"
+                      @click="startCamera"
+                      class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    >
+                      <Camera :size="14" />
+                      Open Camera
+                    </button>
+                  </div>
+
+                  <div class="relative aspect-square w-full max-w-[240px] mx-auto bg-white rounded-3xl border-2 border-dashed border-indigo-200 overflow-hidden flex items-center justify-center group">
+                    <video 
+                      v-show="isCameraActive"
+                      ref="videoRef" 
+                      autoplay 
+                      playsinline 
+                      class="w-full h-full object-cover"
+                    ></video>
+                    
+                    <img 
+                      v-if="formData.imageUrl && !isCameraActive" 
+                      :src="formData.imageUrl" 
+                      class="w-full h-full object-cover"
+                    />
+
+                    <div v-if="!isCameraActive && !formData.imageUrl" class="text-center p-4">
+                      <Camera :size="32" class="mx-auto text-indigo-200 mb-2" />
+                      <p class="text-[10px] text-indigo-300 font-bold uppercase">No photo captured</p>
+                    </div>
+
+                    <!-- Camera Controls -->
+                    <div v-if="isCameraActive" class="absolute bottom-4 inset-x-0 flex justify-center gap-2">
+                      <button 
+                        type="button"
+                        @click="capturePhoto"
+                        class="bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-all active:scale-90"
+                      >
+                        <Camera :size="20" />
+                      </button>
+                      <button 
+                        type="button"
+                        @click="stopCamera"
+                        class="bg-white text-gray-400 p-3 rounded-full shadow-lg hover:text-red-500 transition-all active:scale-90 border border-gray-100"
+                      >
+                        <X :size="20" />
+                      </button>
+                    </div>
+
+                    <!-- Reset Control -->
+                    <button 
+                      v-if="formData.imageUrl && !isCameraActive"
+                      type="button"
+                      @click="resetPhoto"
+                      class="absolute top-2 right-2 bg-white/80 backdrop-blur text-gray-600 p-2 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-indigo-600"
+                    >
+                      <RefreshCcw :size="16" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Image URL (Fallback) -->
                 <div class="space-y-2">
-                   <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Portrait Image URL</label>
+                   <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Manual Image URL (Optional)</label>
                    <input 
                      v-model="formData.imageUrl"
                      type="text" 
                      placeholder="https://images.unsplash.com/..."
-                     class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm"
+                     class="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700 shadow-sm text-xs"
                    />
                 </div>
   
