@@ -88,6 +88,31 @@ export const api = {
       return api.auth.getUserProfile(authData.user.id);
     },
 
+    signUp: async (email: string, password: string): Promise<void> => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Signup failed: No user returned.');
+
+      // Create a default profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: email,
+          role: 'student' // Default role
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        // We don't throw here to avoid blocking sign up if profile sync fails, 
+        // but in a production app you'd want cleanup or retry logic.
+      }
+    },
+
     logout: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
