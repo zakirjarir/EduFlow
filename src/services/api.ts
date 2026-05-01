@@ -96,21 +96,9 @@ export const api = {
 
       if (error) throw error;
       if (!data.user) throw new Error('Signup failed: No user returned.');
-
-      // Create a default profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: email,
-          role: 'student' // Default role
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // We don't throw here to avoid blocking sign up if profile sync fails, 
-        // but in a production app you'd want cleanup or retry logic.
-      }
+      
+      // Note: A database trigger (handle_new_user) now creates the profile record automatically.
+      // This avoids RLS issues during the manual client-side insert.
     },
 
     logout: async () => {
