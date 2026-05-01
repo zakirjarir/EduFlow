@@ -10,6 +10,7 @@ import StudentPanel from './components/student-panel/StudentPanel.vue';
 import Login from './components/auth/Login.vue';
 import { Search, Bell, User, LogOut } from 'lucide-vue-next';
 import { UserRole, Student } from './types';
+import { api } from './services/api';
 
 const activeTab = ref('dashboard');
 const isSidebarOpen = ref(false);
@@ -18,11 +19,36 @@ const authState = ref<{ user: Student | null; role: UserRole | null }>({
   role: null,
 });
 
-onMounted(() => {
-  const saved = localStorage.getItem('ef_auth');
-  if (saved) {
-    authState.value = JSON.parse(saved);
+onMounted(async () => {
+  // Check current session
+  const session = await api.auth.getCurrentSession();
+  if (session?.user) {
+    try {
+      const profile = await api.auth.getUserProfile(session.user.id);
+      authState.value = profile;
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    }
   }
+
+  // Listen for auth changes
+  import('./lib/supabase').then(({ supabase }) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        try {
+          const profile = await api.auth.getUserProfile(session.user.id);
+          authState.value = profile;
+          if (profile.role === 'student' && activeTab.value === 'dashboard') {
+            activeTab.value = 'student-home';
+          }
+        } catch (err) {
+          console.error('Auth state change profile error:', err);
+        }
+      } else {
+        authState.value = { user: null, role: null };
+      }
+    });
+  });
 });
 
 const toggleSidebar = () => {
@@ -35,15 +61,14 @@ const closeSidebar = () => {
 
 const handleLogin = (data: { user: Student | null; role: UserRole }) => {
   authState.value = data;
-  localStorage.setItem('ef_auth', JSON.stringify(data));
   if (data.role === 'student') {
     activeTab.value = 'student-home';
   }
 };
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  await api.auth.logout();
   authState.value = { user: null, role: null };
-  localStorage.removeItem('ef_auth');
 };
 
 const currentComponent = computed(() => {

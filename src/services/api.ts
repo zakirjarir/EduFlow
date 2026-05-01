@@ -1,19 +1,6 @@
 import { Student, AttendanceRecord, FeeRecord, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 
-// --- Local Storage Fallback (for easy testing) ---
-const getStorage = <T>(key: string, defaultValue: T): T => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
-};
-
-const setStorage = <T>(key: string, data: T) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-// Check if we should use Supabase (if keys are provided)
-const useSupabase = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-
 // --- Helpers for Supabase Field Mapping ---
 const mapStudentFromDb = (data: any): Student => ({
   id: data.id,
@@ -52,60 +39,67 @@ const mapStudentToDb = (data: Partial<Student>) => {
 export const api = {
   // --- Auth via Supabase ---
   auth: {
-    login: async (email: string, password: string): Promise<{ user: Student | null; role: UserRole }> => {
-      // For Admin (Demo purpose usually uses fixed secrets or admin table)
-      if (email === 'admin@eduflow.com' && password === 'admin123') {
-        return { user: null, role: 'admin' };
+    getCurrentSession: async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return session;
+    },
+
+    getUserProfile: async (userId: string): Promise<{ user: Student | null; role: UserRole }> => {
+      // 1. Check if user is an admin by checking a 'profiles' table or similar
+      // Since we don't have a profiles table yet, let's assume an admin email or check a profile table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (!profileError && profile) {
+        if (profile.role === 'admin') {
+          return { user: null, role: 'admin' };
+        }
       }
 
-      if (useSupabase) {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      // 2. Check if user is a student
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-        if (authError) throw authError;
-
-        const { data: student, error: studentError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', authData.user?.id)
-          .single();
-
-        if (studentError || !student) {
-           throw new Error('Student record not found for this account.');
-        }
-
+      if (student) {
         const mappedStudent = mapStudentFromDb(student);
-
-        if (!mappedStudent.isCaptain) {
-          throw new Error('Access Denied: Only Class Captains can access this portal.');
-        }
-
         return { user: mappedStudent, role: 'student' };
       }
 
-      // Local Fallback
-      const students = await api.students.getAll();
-      const student = students.find(s => s.email === email && s.phone === password); // Simple fallback
-      
-      if (student) {
-        if (!student.isCaptain) {
-          throw new Error('Access Denied: Only Class Captains can access this portal.');
-        }
-        return { user: student, role: 'student' };
-      }
-      throw new Error('Invalid email or password');
+      // Default to guest/denied if no record found
+      throw new Error('Unauthorized: No profile found for this account.');
+    },
+
+    login: async (email: string, password: string): Promise<{ user: Student | null; role: UserRole }> => {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('No user found after authentication.');
+
+      return api.auth.getUserProfile(authData.user.id);
+    },
+
+    logout: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     }
   },
 
   // --- Students ---
   students: {
     uploadImage: async (fileData: string, studentId: string): Promise<string> => {
-      if (!useSupabase || !fileData.startsWith('data:')) return fileData;
+      if (!fileData.startsWith('data:')) return fileData;
 
       try {
-        // Convert base64 to Blob
         const response = await fetch(fileData);
         const blob = await response.blob();
         
@@ -127,172 +121,172 @@ export const api = {
 
         return publicUrl;
       } catch (err) {
-        console.error('Upload failed, falling back to base64:', err);
-        return fileData;
+        console.error('Upload failed:', err);
+        throw err;
       }
     },
     getAll: async (): Promise<Student[]> => {
-      if (useSupabase) {
-        const { data, error } = await supabase.from('students').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-           return data.map(mapStudentFromDb);
-        }
-      }
-      return getStorage<Student[]>('ef_students', []);
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data ? data.map(mapStudentFromDb) : [];
     },
     add: async (student: Omit<Student, 'id' | 'qrCode' | 'createdAt'>): Promise<Student> => {
-      const newStudent: Student = {
+      const newStudent = {
         ...student,
         id: crypto.randomUUID(),
         qrCode: `STU-${Date.now()}`,
         createdAt: Date.now(),
       };
 
-      if (useSupabase) {
-        const { data, error } = await supabase
-          .from('students')
-          .insert(mapStudentToDb(newStudent))
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('Supabase insert error:', error);
-          throw error;
-        }
-        if (data) return mapStudentFromDb(data);
-      }
-
-      const students = await api.students.getAll();
-      setStorage('ef_students', [...students, newStudent]);
-      return newStudent;
+      const { data, error } = await supabase
+        .from('students')
+        .insert(mapStudentToDb(newStudent))
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return mapStudentFromDb(data);
     },
     update: async (id: string, updates: Partial<Student>): Promise<Student> => {
-      if (useSupabase) {
-        const { data, error } = await supabase
-          .from('students')
-          .update(mapStudentToDb(updates))
-          .eq('id', id)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('Supabase update error:', error);
-          throw error;
-        }
-        if (data) return mapStudentFromDb(data);
-      }
-
-      const students = await api.students.getAll();
-      const index = students.findIndex(s => s.id === id);
-      if (index === -1) throw new Error('Student not found');
-      students[index] = { ...students[index], ...updates };
-      setStorage('ef_students', students);
-      return students[index];
+      const { data, error } = await supabase
+        .from('students')
+        .update(mapStudentToDb(updates))
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return mapStudentFromDb(data);
     },
     delete: async (id: string): Promise<void> => {
-      if (useSupabase) {
-        const { error } = await supabase.from('students').delete().eq('id', id);
-        if (error) {
-          console.error('Supabase delete error:', error);
-          throw error;
-        }
-      }
-      const students = await api.students.getAll();
-      setStorage('ef_students', students.filter(s => s.id !== id));
+      const { error } = await supabase.from('students').delete().eq('id', id);
+      if (error) throw error;
     }
   },
 
   // --- Attendance ---
   attendance: {
     getAll: async (): Promise<AttendanceRecord[]> => {
-      if (useSupabase) {
-        const { data, error } = await supabase.from('attendance').select('*');
-        if (!error && data) return data;
-      }
-      return getStorage<AttendanceRecord[]>('ef_attendance', []);
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*');
+      
+      if (error) throw error;
+      return data || [];
     },
     mark: async (record: Omit<AttendanceRecord, 'id' | 'timestamp'>): Promise<AttendanceRecord> => {
-      const records = await api.attendance.getAll();
-      const existing = records.find(r => r.studentId === record.studentId && r.date === record.date);
+      // Check for existing record for the same student and date
+      const { data: existing, error: findError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('student_id', record.studentId)
+        .eq('date', record.date)
+        .maybeSingle();
+
+      if (findError) throw findError;
 
       if (existing) {
         return api.attendance.update(existing.id, record.status);
       }
 
-      const newRecord: AttendanceRecord = {
+      const newRecord = {
         ...record,
         id: crypto.randomUUID(),
         timestamp: Date.now(),
       };
 
-      if (useSupabase) {
-        const { data, error } = await supabase.from('attendance').insert(newRecord).select().single();
-        if (!error && data) return data;
-      }
-
-      setStorage('ef_attendance', [...records, newRecord]);
-      return newRecord;
+      const { data, error } = await supabase
+        .from('attendance')
+        .insert({
+          id: newRecord.id,
+          student_id: record.studentId,
+          date: record.date,
+          status: record.status,
+          marked_by: record.markedBy,
+          timestamp: newRecord.timestamp
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     update: async (id: string, status: AttendanceRecord['status']): Promise<AttendanceRecord> => {
-      if (useSupabase) {
-        const { data, error } = await supabase.from('attendance').update({ status }).eq('id', id).select().single();
-        if (!error && data) return data;
-      }
-
-      const records = await api.attendance.getAll();
-      const index = records.findIndex(r => r.id === id);
-      if (index === -1) throw new Error('Record not found');
-      records[index].status = status;
-      setStorage('ef_attendance', records);
-      return records[index];
+      const { data, error } = await supabase
+        .from('attendance')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     getByDate: async (date: string): Promise<AttendanceRecord[]> => {
-      const records = await api.attendance.getAll();
-      return records.filter(r => r.date === date);
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('date', date);
+      
+      if (error) throw error;
+      return data || [];
     }
   },
 
   // --- Fees ---
   fees: {
     getAll: async (): Promise<FeeRecord[]> => {
-      if (useSupabase) {
-        const { data, error } = await supabase.from('fees').select('*');
-        if (!error && data) return data;
-      }
-      return getStorage<FeeRecord[]>('ef_fees', []);
+      const { data, error } = await supabase.from('fees').select('*');
+      if (error) throw error;
+      return data || [];
     },
     add: async (fee: Omit<FeeRecord, 'id' | 'timestamp'>): Promise<FeeRecord> => {
-      const newFee: FeeRecord = {
+      const newFee = {
         ...fee,
         id: crypto.randomUUID(),
         timestamp: Date.now(),
       };
 
-      if (useSupabase) {
-        const { data, error } = await supabase.from('fees').insert(newFee).select().single();
-        if (!error && data) return data;
-      }
+      const { data, error } = await supabase
+        .from('fees')
+        .insert({
+          id: newFee.id,
+          student_id: fee.studentId,
+          type: fee.type,
+          amount: fee.amount,
+          status: fee.status,
+          date: fee.date,
+          timestamp: newFee.timestamp
+        })
+        .select()
+        .single();
 
-      const fees = await api.fees.getAll();
-      setStorage('ef_fees', [...fees, newFee]);
-      return newFee;
+      if (error) throw error;
+      return data;
     },
     updateStatus: async (id: string, status: FeeRecord['status']): Promise<FeeRecord> => {
-      if (useSupabase) {
-        const { data, error } = await supabase.from('fees').update({ status }).eq('id', id).select().single();
-        if (!error && data) return data;
-      }
-
-      const fees = await api.fees.getAll();
-      const index = fees.findIndex(f => f.id === id);
-      if (index === -1) throw new Error('Fee record not found');
-      fees[index].status = status;
-      setStorage('ef_fees', fees);
-      return fees[index];
+      const { data, error } = await supabase
+        .from('fees')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     getByStudentId: async (studentId: string): Promise<FeeRecord[]> => {
-      const fees = await api.fees.getAll();
-      return fees.filter(f => f.studentId === studentId);
+      const { data, error } = await supabase
+        .from('fees')
+        .select('*')
+        .eq('student_id', studentId);
+      
+      if (error) throw error;
+      return data || [];
     }
   }
 };

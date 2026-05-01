@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Star,
   Camera,
-  RefreshCcw,
+  RefreshCw,
   Upload,
   AlertCircle
 } from 'lucide-vue-next';
@@ -487,7 +487,7 @@ const filteredStudents = computed(() =>
                       @click="resetPhoto"
                       class="absolute top-2 right-2 bg-white/80 backdrop-blur text-gray-600 p-2 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-indigo-600"
                     >
-                      <RefreshCcw :size="16" />
+                      <RefreshCw :size="16" />
                     </button>
                   </div>
                 </div>
