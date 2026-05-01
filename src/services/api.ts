@@ -101,6 +101,36 @@ export const api = {
 
   // --- Students ---
   students: {
+    uploadImage: async (fileData: string, studentId: string): Promise<string> => {
+      if (!useSupabase || !fileData.startsWith('data:')) return fileData;
+
+      try {
+        // Convert base64 to Blob
+        const response = await fetch(fileData);
+        const blob = await response.blob();
+        
+        const fileName = `${studentId}-${Date.now()}.jpg`;
+        const filePath = `portraits/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('student-portraits')
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('student-portraits')
+          .getPublicUrl(filePath);
+
+        return publicUrl;
+      } catch (err) {
+        console.error('Upload failed, falling back to base64:', err);
+        return fileData;
+      }
+    },
     getAll: async (): Promise<Student[]> => {
       if (useSupabase) {
         const { data, error } = await supabase.from('students').select('*').order('created_at', { ascending: false });

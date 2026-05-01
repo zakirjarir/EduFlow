@@ -43,3 +43,10 @@ CREATE TABLE IF NOT EXISTS fees (
 ALTER TABLE students DISABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance DISABLE ROW LEVEL SECURITY;
 ALTER TABLE fees DISABLE ROW LEVEL SECURITY;
+
+-- 4. Storage Bucket Setup (Instructions)
+-- Note: You must manually create a public bucket named 'student-portraits' in the Supabase Dashboard
+-- 1. Go to Storage -> New Bucket -> Name it 'student-portraits' -> Make it PUBLIC.
+-- 2. Add a policy to allow all uploads for better demo experience:
+--    CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'student-portraits');
+--    CREATE POLICY "Public Select" ON storage.objects FOR SELECT USING (bucket_id = 'student-portraits');

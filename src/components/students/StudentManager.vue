@@ -86,13 +86,26 @@ const loadStudents = async () => {
 onMounted(loadStudents);
 
 const handleSubmit = async () => {
-  if (editingStudent.value) {
-    await api.students.update(editingStudent.value.id, formData.value);
-  } else {
-    await api.students.add(formData.value);
+  try {
+    let finalImageUrl = formData.value.imageUrl;
+    
+    // If it's a new base64 capture, upload it first
+    if (finalImageUrl.startsWith('data:')) {
+      const uploadId = editingStudent.value?.id || `new-${Date.now()}`;
+      finalImageUrl = await api.students.uploadImage(finalImageUrl, uploadId);
+      formData.value.imageUrl = finalImageUrl;
+    }
+
+    if (editingStudent.value) {
+      await api.students.update(editingStudent.value.id, formData.value);
+    } else {
+      await api.students.add(formData.value);
+    }
+    closeModal();
+    loadStudents();
+  } catch (err) {
+    console.error('Submit error:', err);
   }
-  closeModal();
-  loadStudents();
 };
 
 const openModal = (student?: Student) => {
