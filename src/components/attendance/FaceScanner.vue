@@ -1,34 +1,53 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { Camera, RefreshCw, UserCheck, AlertTriangle, ShieldCheck } from 'lucide-vue-next';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { Camera, RefreshCw, UserCheck, AlertTriangle, ShieldCheck, SwitchCamera, Play, Pause } from 'lucide-vue-next';
 import { cn } from '../../lib/utils';
 import { api } from '../../services/api';
 import { format } from 'date-fns';
 import { faceRecognitionService } from '../../services/FaceRecognitionService';
 
 const videoRef = ref<HTMLVideoElement | null>(null);
-const canvasRef = ref<HTMLCanvasElement | null>(null);
 const isModelsLoaded = ref(false);
 const isTraining = ref(false);
 const isScanning = ref(false);
 const scanResult = ref<{ name: string; roll: string } | null>(null);
 const error = ref('');
+const facingMode = ref<'user' | 'environment'>('user');
+const isAutoScanEnabled = ref(true);
+const markedToday = ref(new Set<string>()); // Cache to prevent duplicate marking in same session
+let animationFrameId: number | null = null;
+let lastScanTime = 0;
 
 const startVideo = async () => {
+  if (videoRef.value && videoRef.value.srcObject) {
+    const stream = videoRef.value.srcObject as MediaStream;
+    stream.getTracks().forEach(track => track.stop());
+  }
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: facingMode.value } 
+    });
     if (videoRef.value) {
       videoRef.value.srcObject = stream;
     }
+    error.value = '';
   } catch (err) {
     console.error('Video error:', err);
-    error.value = 'Camera access denied.';
+    error.value = 'Camera access denied or device not found.';
   }
+};
+
+const toggleCamera = async () => {
+  facingMode.value = facingMode.value === 'user' ? 'environment' : 'user';
+  await startVideo();
 };
 
 const initializeFaceSystem = async () => {
   try {
     isTraining.value = true;
+    error.value = '';
+    
     const students = await api.students.getAll();
     const studentsWithImages = students.filter(s => !!s.imageUrl);
     
@@ -39,48 +58,78 @@ const initializeFaceSystem = async () => {
       return;
     }
 
-    await faceRecognitionService.train(studentsWithImages);
-    isModelsLoaded.value = true;
+    const success = await faceRecognitionService.train(studentsWithImages);
+    if (!success) {
+      error.value = 'Biometric training failed. Ensure photos are clear.';
+    } else {
+      isModelsLoaded.value = true;
+      // Start the auto-scan loop once models are ready
+      startAutoScanLoop();
+    }
     isTraining.value = false;
   } catch (err) {
     console.error('Face system initialization failed:', err);
-    error.value = 'Failed to initialize biometric engine.';
+    error.value = 'Biometric Engine Offline.';
     isTraining.value = false;
   }
 };
 
-const handleScan = async () => {
-  if (!videoRef.value) return;
-
-  isScanning.value = true;
-  scanResult.value = null;
-  error.value = '';
+const runSingleScan = async () => {
+  if (!videoRef.value || !isModelsLoaded.value || isScanning.value || scanResult.value) return;
 
   try {
+    isScanning.value = true;
     const studentId = await faceRecognitionService.recognize(videoRef.value);
     
     if (studentId) {
-      const students = await api.students.getAll();
-      const student = students.find(s => s.id === studentId);
-      
-      if (student) {
-        await api.attendance.mark({
-          studentId: student.id,
-          date: format(new Date(), 'yyyy-MM-dd'),
-          status: 'present',
-          markedBy: 'FaceBiometric'
-        });
-        scanResult.value = { name: student.name, roll: student.roll };
+      // Check if already marked in this session
+      if (markedToday.value.has(studentId)) {
+        // Show subtle feedback or just wait
+        console.log('Student already marked today');
+      } else {
+        const students = await api.students.getAll();
+        const student = students.find(s => s.id === studentId);
+        
+        if (student) {
+          await api.attendance.mark({
+            studentId: student.id,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            status: 'present',
+            markedBy: 'FaceBiometric-Auto'
+          });
+          
+          markedToday.value.add(studentId);
+          scanResult.value = { name: student.name, roll: student.roll };
+          
+          // Auto-hide success message after 3 seconds to resume scanning
+          setTimeout(() => {
+            scanResult.value = null;
+          }, 3000);
+        }
       }
-    } else {
-      error.value = 'Face not recognized. Please align and try again.';
     }
   } catch (err) {
-    console.error('Scan error:', err);
-    error.value = 'Error processing biometrics.';
+    console.error('Auto-scan error:', err);
   } finally {
     isScanning.value = false;
   }
+};
+
+const startAutoScanLoop = () => {
+  const loop = async (time: number) => {
+    if (!isAutoScanEnabled.value) {
+      animationFrameId = requestAnimationFrame(loop);
+      return;
+    }
+
+    // Scan every 800ms to save CPU
+    if (time - lastScanTime > 800) {
+      await runSingleScan();
+      lastScanTime = time;
+    }
+    animationFrameId = requestAnimationFrame(loop);
+  };
+  animationFrameId = requestAnimationFrame(loop);
 };
 
 onMounted(async () => {
@@ -89,6 +138,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
   if (videoRef.value && videoRef.value.srcObject) {
     const stream = videoRef.value.srcObject as MediaStream;
     stream.getTracks().forEach(track => track.stop());
@@ -97,106 +147,115 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-6">
+  <div class="p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm space-y-6">
     <div class="flex items-center justify-between">
-       <div>
-         <h4 class="font-black text-gray-900 flex items-center gap-2">
-           <Camera class="text-indigo-600" />
-           Face Scan Attendance
-         </h4>
-         <p class="text-xs text-gray-400 mt-1">Smart Biometric Recognition System</p>
+       <div class="flex items-center gap-3">
+         <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+            <Camera :size="22" />
+         </div>
+         <div>
+           <h4 class="font-black text-gray-900 tracking-tight">Biometric Attendance</h4>
+           <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">AI Engine Active</p>
+         </div>
        </div>
-       <div v-if="isTraining" class="flex items-center gap-2 text-indigo-600 text-[10px] font-black uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-         <RefreshCw class="animate-spin" :size="14" />
-         Training Models...
-       </div>
-       <div v-else-if="isModelsLoaded" class="flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-         <ShieldCheck :size="14" />
-         Biometrics Active
+
+       <div class="flex items-center gap-2">
+         <button 
+           @click="isAutoScanEnabled = !isAutoScanEnabled"
+           :class="cn(
+             'p-2 rounded-xl border transition-all',
+             isAutoScanEnabled ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-gray-50 border-gray-100 text-gray-400'
+           )"
+           title="Toggle Auto-Scan"
+         >
+           <component :is="isAutoScanEnabled ? Pause : Play" :size="18" />
+         </button>
+         <button 
+           @click="toggleCamera"
+           class="p-2 bg-gray-50 border border-gray-100 rounded-xl text-gray-500 hover:bg-white hover:shadow-sm transition-all"
+           title="Switch Camera"
+         >
+           <SwitchCamera :size="18" />
+         </button>
        </div>
     </div>
 
-    <div class="relative group">
-       <div class="aspect-video bg-gray-900 rounded-3xl overflow-hidden shadow-inner border-[6px] border-gray-800">
+    <div class="relative">
+       <div class="aspect-video bg-[#151619] rounded-[32px] overflow-hidden shadow-inner border-[8px] border-[#1C1D21] relative">
           <video 
             ref="videoRef" 
             autoplay 
             muted 
             playsinline
-            class="w-full h-full object-cover opacity-80"
+            :class="cn('w-full h-full object-cover transition-opacity duration-500', isModelsLoaded ? 'opacity-90' : 'opacity-40')"
           ></video>
           
-          <!-- Scanning Overlay -->
-          <div v-if="isScanning" class="absolute inset-0 pointer-events-none">
-             <div class="absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,1)] animate-scan"></div>
-             <div class="absolute inset-0 border-2 border-indigo-500/30 rounded-3xl m-8"></div>
+          <!-- Scanning Animation -->
+          <div v-if="isAutoScanEnabled && isModelsLoaded && !scanResult" class="absolute inset-0 pointer-events-none">
+             <div class="absolute inset-x-12 top-0 h-full flex items-center justify-center">
+                <div class="w-full h-0.5 bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,1)] animate-scan"></div>
+             </div>
+             <!-- Scanning corners -->
+             <div class="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-indigo-500 rounded-tl-lg"></div>
+             <div class="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-indigo-500 rounded-tr-lg"></div>
+             <div class="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-indigo-500 rounded-bl-lg"></div>
+             <div class="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-indigo-500 rounded-br-lg"></div>
           </div>
 
           <!-- Processing Overlay -->
-          <div v-if="isScanning" class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] flex items-center justify-center z-10 transition-all">
-             <div class="flex flex-col items-center gap-4">
-                <div class="relative">
-                   <div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-                   <div class="absolute inset-0 flex items-center justify-center">
-                      <Camera class="text-white" :size="24" />
-                   </div>
-                </div>
-                <p class="text-white text-xs font-black uppercase tracking-widest">Analyzing Biometrics...</p>
+          <div v-if="isScanning" class="absolute top-6 right-6 z-10">
+             <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                <RefreshCw class="text-indigo-400 animate-spin" :size="12" />
+                <span class="text-[9px] text-white font-black uppercase tracking-widest">Matching...</span>
              </div>
           </div>
 
-          <!-- Success result overlay -->
+          <!-- Loading State -->
+          <div v-if="isTraining || !isModelsLoaded" class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-10">
+             <div class="flex flex-col items-center gap-4">
+                <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                <p class="text-white text-[10px] font-black uppercase tracking-widest text-center px-8">
+                  {{ isTraining ? 'Training AI Models...' : 'Initializing Biometric Engine...' }}
+                </p>
+             </div>
+          </div>
+
+          <!-- Success overlay -->
           <Transition name="scale">
-            <div v-if="scanResult" class="absolute inset-0 bg-emerald-600/90 flex flex-col items-center justify-center text-white text-center p-6 z-20">
-               <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-emerald-600 mb-4 shadow-xl animate-in zoom-in-50 duration-500">
-                 <UserCheck :size="32" />
+            <div v-if="scanResult" class="absolute inset-0 bg-emerald-600/95 backdrop-blur-md flex flex-col items-center justify-center text-white text-center p-6 z-20">
+               <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-emerald-600 mb-4 shadow-2xl animate-in zoom-in-50 duration-500">
+                 <UserCheck :size="40" />
                </div>
-               <p class="text-xs font-black uppercase tracking-widest opacity-80 mb-1">Identity Verified</p>
-               <h3 class="text-2xl font-black">{{ scanResult.name }}</h3>
-               <p class="text-sm font-bold opacity-90 mt-1 uppercase tracking-widest">Attendance Marked</p>
-               <button @click="scanResult = null" class="mt-6 px-8 py-2.5 bg-white text-emerald-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Next Student</button>
+               <p class="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Attendance Verified</p>
+               <h3 class="text-3xl font-black mb-1">{{ scanResult.name }}</h3>
+               <p class="text-xs font-bold opacity-70 uppercase tracking-widest">Roll: {{ scanResult.roll }}</p>
+               
+               <div class="mt-6 flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
+                  <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span class="text-[10px] font-bold uppercase">Ready in 3s...</span>
+               </div>
             </div>
           </Transition>
-
-          <canvas ref="canvasRef" class="absolute inset-0"></canvas>
-       </div>
-
-       <!-- Action Controls -->
-       <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10">
-          <button 
-            @click="handleScan"
-            :disabled="isScanning || isTraining || !isModelsLoaded"
-            :class="cn(
-              'px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-xl',
-              (isScanning || isTraining || !isModelsLoaded) ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600 backdrop-blur-md' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 active:scale-95 border border-indigo-500'
-            )"
-          >
-             <RefreshCw v-if="isScanning" class="animate-spin" :size="18" />
-             <Camera v-else :size="18" />
-             {{ isScanning ? 'Processing...' : 'Verify Biometrics' }}
-          </button>
        </div>
     </div>
 
-    <div v-if="error" class="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold animate-in slide-in-from-bottom-2">
-       <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-          <AlertTriangle :size="16" />
-       </div>
+    <div v-if="error" class="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
+       <AlertTriangle :size="16" class="shrink-0" />
        {{ error }}
     </div>
 
-    <div class="grid grid-cols-3 gap-4 text-center mt-4">
-       <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Engine</p>
-          <p class="text-xs font-black text-gray-900">v2.0-BIO</p>
+    <div class="grid grid-cols-3 gap-4 text-center">
+       <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100 group hover:border-indigo-100 transition-colors">
+          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Marked Today</p>
+          <p class="text-lg font-black text-gray-900">{{ markedToday.size }}</p>
        </div>
-       <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+       <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
           <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Liveness</p>
-          <p class="text-xs font-black text-emerald-600 uppercase tracking-widest">ACTIVE</p>
+          <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">Enabled</p>
        </div>
-       <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Status</p>
-          <p class="text-xs font-black text-indigo-600 uppercase tracking-widest">{{ isModelsLoaded ? 'Ready' : 'Syncing' }}</p>
+       <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+          <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Engine</p>
+          <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md">v2.0-BIO</p>
        </div>
     </div>
   </div>
@@ -204,19 +263,19 @@ onUnmounted(() => {
 
 <style scoped>
 @keyframes scan {
-  0% { transform: translateY(-150px); opacity: 0; }
+  0% { transform: translateY(-120px); opacity: 0; }
   50% { opacity: 1; }
-  100% { transform: translateY(150px); opacity: 0; }
+  100% { transform: translateY(120px); opacity: 0; }
 }
 .animate-scan {
-  animation: scan 2s infinite ease-in-out;
+  animation: scan 2.5s infinite ease-in-out;
 }
 
 .scale-enter-active, .scale-leave-active {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .scale-enter-from, .scale-leave-to {
-  transform: scale(0.85);
+  transform: scale(0.8) translateY(20px);
   opacity: 0;
 }
 </style>

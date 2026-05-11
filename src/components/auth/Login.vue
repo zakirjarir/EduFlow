@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { api } from '../../services/api';
 import { UserRole, Student } from '../../types';
-import { LogIn, GraduationCap, ShieldCheck, ArrowRight } from 'lucide-vue-next';
+import { GraduationCap, ShieldCheck, ArrowRight } from 'lucide-vue-next';
 
+const router = useRouter();
 const emit = defineEmits<{
   (e: 'login', data: { user: Student | null; role: UserRole }): void
 }>();
@@ -28,6 +30,9 @@ const handleSubmit = async () => {
     } else {
       const result = await api.auth.login(email.value, password.value);
       emit('login', result);
+      
+      if (result.role === 'admin') router.push({ name: 'Dashboard' });
+      else router.push({ name: 'StudentPortal' });
     }
   } catch (err: any) {
     error.value = err.message || `${isSignUp.value ? 'Sign up' : 'Login'} failed. Please check credentials.`;

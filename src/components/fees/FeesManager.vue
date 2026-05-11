@@ -42,17 +42,27 @@ const load = async () => {
 onMounted(load);
 
 const handleSubmit = async () => {
-  await api.fees.add({
-    ...formData.value,
-  });
-  isModalOpen.value = false;
-  formData.value = { ...formData.value, studentId: '', amount: 0 };
-  load();
+  try {
+    await api.fees.add({
+      ...formData.value,
+    });
+    isModalOpen.value = false;
+    formData.value = { ...formData.value, studentId: '', amount: 0 };
+    await load();
+  } catch (err: any) {
+    console.error('Fee submit error:', err);
+    alert('Failed to add fee record: ' + (err.message || 'Unknown error'));
+  }
 };
 
 const handleUpdateStatus = async (id: string, status: FeeStatus) => {
-  await api.fees.updateStatus(id, status);
-  load();
+  try {
+    await api.fees.updateStatus(id, status);
+    await load();
+  } catch (err: any) {
+    console.error('Fee status update error:', err);
+    alert('Failed to update status: ' + (err.message || 'Unknown error'));
+  }
 };
 
 const filteredFees = computed(() => fees.value.filter(f => {

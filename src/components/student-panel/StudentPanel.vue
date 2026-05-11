@@ -17,7 +17,7 @@ import { cn } from '../../lib/utils';
 import AttendanceSystem from '../attendance/AttendanceSystem.vue';
 
 const props = defineProps<{
-  student: Student;
+  student: Student | null;
 }>();
 
 const fees = ref<FeeRecord[]>([]);
@@ -25,6 +25,7 @@ const attendance = ref<AttendanceRecord[]>([]);
 const activeSubTab = ref('fees');
 
 onMounted(async () => {
+  if (!props.student) return;
   const [f, a] = await Promise.all([
     api.fees.getByStudentId(props.student.id),
     api.attendance.getAll().then(all => all.filter(rec => rec.studentId === props.student.id))
@@ -47,7 +48,23 @@ const attendanceStats = computed(() => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in active">
+  <div v-if="!student" class="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center space-y-6">
+     <div class="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 animate-bounce">
+        <AlertCircle :size="40" />
+     </div>
+     <div class="max-w-xs">
+        <h2 class="text-2xl font-black text-gray-900 mb-2">Profile Not Linked</h2>
+        <p class="text-sm text-gray-500 font-medium leading-relaxed">
+          Your account is authenticated but has not been linked to a student record yet. 
+          Please contact the administrator with your Roll No. to complete your profile setup.
+        </p>
+     </div>
+     <button @click="api.auth.logout()" class="text-indigo-600 font-bold text-sm hover:underline">
+       Logout and try again
+     </button>
+  </div>
+
+  <div v-else class="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in active">
     <!-- Header Summary -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       <div class="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-200 flex items-center justify-between">

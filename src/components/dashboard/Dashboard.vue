@@ -68,16 +68,16 @@ const loadStats = async () => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayAttendance = attendance.filter(a => a.date === today);
   
-  const present = todayAttendance.filter(a => a.status === 'present').length;
-  const absent = students.length - present;
+  const presentCount = todayAttendance.filter(a => a.status === 'present' || a.status === 'late').length;
+  const absentCount = students.length - presentCount;
 
   const totalFees = fees.filter(f => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0);
   const dueFees = fees.filter(f => f.status === 'due').reduce((sum, f) => sum + f.amount, 0);
 
   stats.value = {
     totalStudents: students.length,
-    presentToday: present,
-    absentToday: absent,
+    presentToday: presentCount,
+    absentToday: absentCount,
     totalFees,
     dueFees,
   };
@@ -85,12 +85,16 @@ const loadStats = async () => {
   // Prepare chart data (last 7 days)
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
+    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - i);
     return format(d, 'yyyy-MM-dd');
   }).reverse();
 
   chartData.value = {
-    labels: last7Days.map(date => format(new Date(date), 'EEE')),
+    labels: last7Days.map(date => {
+      const parts = date.split('-');
+      return format(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])), 'EEE');
+    }),
     datasets: [
       {
         label: 'Present',

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import { 
   LayoutDashboard, 
   Users, 
@@ -10,25 +11,31 @@ import {
   X 
 } from 'lucide-vue-next';
 import { cn } from '../../lib/utils';
+import { api } from '../../services/api';
 
 defineProps<{
-  activeTab: string;
   isOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:activeTab', tab: string): void;
   (e: 'close'): void;
 }>();
 
+const router = useRouter();
+
 const MENU_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'students', label: 'Students', icon: Users },
-  { id: 'attendance', label: 'Attendance', icon: ClipboardCheck },
-  { id: 'qr-scan', label: 'QR Scanner', icon: QrCode },
-  { id: 'fees', label: 'Fees', icon: ReceiptIndianRupee },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'students', label: 'Students', icon: Users, path: '/students' },
+  { id: 'attendance', label: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
+  { id: 'qr-scan', label: 'QR Scanner', icon: QrCode, path: '/qr-scan' },
+  { id: 'fees', label: 'Fees', icon: ReceiptIndianRupee, path: '/fees' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
+
+const handleLogout = async () => {
+  await api.auth.logout();
+  router.push({ name: 'Login' });
+};
 </script>
 
 <template>
@@ -61,35 +68,41 @@ const MENU_ITEMS = [
       </div>
 
       <nav class="space-y-1">
-        <button
+        <router-link
           v-for="item in MENU_ITEMS"
           :key="item.id"
-          @click="emit('update:activeTab', item.id)"
-          :class="cn(
-            'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative outline-none',
-            activeTab === item.id 
+          :to="item.path"
+          v-slot="{ isActive }"
+          @click="emit('close')"
+        >
+          <div :class="cn(
+            'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative outline-none cursor-pointer',
+            isActive 
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
               : 'text-gray-400 hover:text-white hover:bg-[#2A2B2F]'
-          )"
-        >
-          <component 
-            :is="item.icon" 
-            :size="20" 
-            :class="activeTab === item.id ? 'text-white' : 'text-gray-400 group-hover:text-white'" 
-          />
-          <span class="font-medium text-sm">{{ item.label }}</span>
-          
-          <div
-            v-if="activeTab === item.id"
-            class="absolute left-0 w-1 h-6 bg-white rounded-r-full"
-          ></div>
-        </button>
+          )">
+            <component 
+              :is="item.icon" 
+              :size="20" 
+              :class="isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'" 
+            />
+            <span class="font-medium text-sm">{{ item.label }}</span>
+            
+            <div
+              v-if="isActive"
+              class="absolute left-0 w-1 h-6 bg-white rounded-r-full"
+            ></div>
+          </div>
+        </router-link>
       </nav>
     </div>
 
     <div class="mt-auto p-6 border-t border-[#2A2B2F]">
-      <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-4 px-4 px-4">System Console</p>
-      <button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+      <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-4 px-4">System Console</p>
+      <button 
+        @click="handleLogout"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+      >
         <LogOut :size="20" />
         <span class="font-medium text-sm">Sign Out</span>
       </button>

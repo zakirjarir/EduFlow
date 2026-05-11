@@ -180,8 +180,13 @@ const closeModal = () => {
 
 const handleDelete = async (id: string) => {
   if (confirm('Are you sure you want to delete this student record?')) {
-    await api.students.delete(id);
-    loadStudents();
+    try {
+      await api.students.delete(id);
+      await loadStudents();
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      alert('Failed to delete student: ' + (err.message || 'Unknown error'));
+    }
   }
 };
 

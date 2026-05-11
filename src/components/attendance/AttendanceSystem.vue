@@ -38,13 +38,18 @@ onMounted(loadData);
 watch(selectedDate, loadData);
 
 const handleMark = async (studentId: string, status: AttendanceStatus) => {
-  await api.attendance.mark({
-    studentId,
-    date: selectedDate.value,
-    status,
-    markedBy: 'manual'
-  });
-  loadData();
+  try {
+    await api.attendance.mark({
+      studentId,
+      date: selectedDate.value,
+      status,
+      markedBy: 'manual'
+    });
+    await loadData();
+  } catch (err: any) {
+    console.error('Attendance mark error:', err);
+    alert('Failed to mark attendance: ' + (err.message || 'Unknown error'));
+  }
 };
 
 const getStatus = (studentId: string) => {
@@ -114,7 +119,7 @@ const changeDate = (days: number) => {
           <div class="flex items-center gap-2">
             <CalendarIcon :size="14" class="text-indigo-600" />
             <span class="font-black text-[10px] text-gray-700 uppercase tracking-widest whitespace-nowrap">
-              {{ format(new Date(selectedDate), 'MMM dd') }}
+              {{ format(new Date(selectedDate.split('-').map((n, i) => i === 1 ? Number(n)-1 : Number(n)) as any), 'MMM dd') }}
             </span>
           </div>
           <button @click="changeDate(1)" class="p-1 hover:bg-white hover:rounded-lg text-gray-400 transition-all">

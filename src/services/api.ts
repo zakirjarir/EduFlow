@@ -46,34 +46,39 @@ export const api = {
     },
 
     getUserProfile: async (userId: string): Promise<{ user: Student | null; role: UserRole }> => {
-      // 1. Check if user is an admin by checking a 'profiles' table or similar
-      // Since we don't have a profiles table yet, let's assume an admin email or check a profile table
+      // 1. Check if user has a profile record
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
       
-      if (!profileError && profile) {
-        if (profile.role === 'admin') {
-          return { user: null, role: 'admin' };
-        }
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
       }
 
-      // 2. Check if user is a student
+      // Default to student role if no profile found or if role isn't admin
+      const role: UserRole = profile?.role === 'admin' ? 'admin' : 'student';
+
+      if (role === 'admin') {
+        return { user: null, role: 'admin' };
+      }
+
+      // 2. For students, attempt to fetch their detailed student record
       const { data: student, error: studentError } = await supabase
         .from('students')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (student) {
-        const mappedStudent = mapStudentFromDb(student);
-        return { user: mappedStudent, role: 'student' };
+      if (studentError) {
+        console.error('Student record fetch error:', studentError);
       }
 
-      // Default to guest/denied if no record found
-      throw new Error('Unauthorized: No profile found for this account.');
+      return { 
+        user: student ? mapStudentFromDb(student) : null, 
+        role: 'student' 
+      };
     },
 
     login: async (email: string, password: string): Promise<{ user: Student | null; role: UserRole }> => {
@@ -110,10 +115,11 @@ export const api = {
   // --- Students ---
   students: {
     uploadImage: async (fileData: string, studentId: string): Promise<string> => {
-      if (!fileData.startsWith('data:')) return fileData;
+      if (!fileData || !fileData.startsWith('data:')) return fileData;
 
       try {
         const response = await fetch(fileData);
+        if (!response.ok) throw new Error('Failed to process image data');
         const blob = await response.blob();
         
         const fileName = `${studentId}-${Date.now()}.jpg`;
@@ -126,7 +132,15 @@ export const api = {
             upsert: true
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Supabase Storage Error:', uploadError);
+          // If the bucket doesn't exist, we fallback to returning the base64
+          // but we log it clearly for the developer.
+          if (uploadError.message.includes('bucket not found')) {
+             console.warn('CRITICAL: Storage bucket "student-portraits" not found. Please create it in Supabase dashboard.');
+          }
+          return fileData; 
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('student-portraits')
@@ -134,8 +148,8 @@ export const api = {
 
         return publicUrl;
       } catch (err) {
-        console.error('Upload failed:', err);
-        throw err;
+        console.error('Upload system failure:', err);
+        return fileData; // Fallback to base64 so data isn't lost
       }
     },
     getAll: async (): Promise<Student[]> => {
@@ -192,36 +206,15 @@ export const api = {
       return data || [];
     },
     mark: async (record: Omit<AttendanceRecord, 'id' | 'timestamp'>): Promise<AttendanceRecord> => {
-      // Check for existing record for the same student and date
-      const { data: existing, error: findError } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('student_id', record.studentId)
-        .eq('date', record.date)
-        .maybeSingle();
-
-      if (findError) throw findError;
-
-      if (existing) {
-        return api.attendance.update(existing.id, record.status);
-      }
-
-      const newRecord = {
-        ...record,
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-      };
-
       const { data, error } = await supabase
         .from('attendance')
-        .insert({
-          id: newRecord.id,
+        .upsert({
           student_id: record.studentId,
           date: record.date,
           status: record.status,
           marked_by: record.markedBy,
-          timestamp: newRecord.timestamp
-        })
+          timestamp: Date.now()
+        }, { onConflict: 'student_id, date' })
         .select()
         .single();
       

@@ -102,3 +102,44 @@ CREATE POLICY "Authenticated users can manage fees" ON fees FOR ALL USING (auth.
 -- After creating a user in Supabase Auth (Authentication -> Users -> Add User),
 -- get their 'id' (UUID) and insert it into the profiles table:
 -- INSERT INTO profiles (id, email, role) VALUES ('<USER_UUID>', 'your-email@example.com', 'admin');
+
+-- 7. DEMO DATA (SEEDING)
+-- This section creates demo records so you can see how the system looks.
+-- You can run this directly in the SQL Editor.
+
+-- Insert Demo Students
+INSERT INTO students (id, name, roll, section, batch, phone, email, qr_code, is_captain)
+VALUES 
+  (gen_random_uuid(), 'Zakir Jarir', '101', 'A', '2024', '01712345678', 'zakir@example.com', 'QR-STU-101', true),
+  (gen_random_uuid(), 'Rahat Khan', '102', 'A', '2024', '01712345679', 'rahat@example.com', 'QR-STU-102', false),
+  (gen_random_uuid(), 'Sabbir Ahmed', '103', 'B', '2024', '01712345680', 'sabbir@example.com', 'QR-STU-103', false)
+ON CONFLICT (roll) DO NOTHING;
+
+-- Insert Demo Attendance (for today)
+INSERT INTO attendance (student_id, date, status, marked_by)
+SELECT id, CURRENT_DATE, 'present', 'System' FROM students WHERE roll IN ('101', '102')
+ON CONFLICT DO NOTHING;
+
+-- Insert Demo Fees
+INSERT INTO fees (student_id, type, amount, status, date)
+SELECT id, 'monthly', 1500.00, 'paid', CURRENT_DATE FROM students WHERE roll = '101'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO fees (student_id, type, amount, status, date)
+SELECT id, 'admission', 5000.00, 'due', CURRENT_DATE FROM students WHERE roll = '102'
+ON CONFLICT DO NOTHING;
+
+-- 8. ACCOUNT LINKING & ADMIN SETUP
+-- To see your own data or access the Admin Dashboard, run these commands in SQL Editor:
+
+-- Step A: To login as an ADMIN (Full Access)
+-- 1. Copy your User ID from "Authentication" -> "Users"
+-- 2. Replace '<YOUR_UUID>' below and run:
+INSERT INTO profiles (id, email, role) 
+VALUES ('c22ba2c9-2ed7-4a6c-b93f-4157fea713b4', 'zakirjarir@gmail.com', 'admin')
+ON CONFLICT (id) DO UPDATE SET role = 'admin';
+
+-- Step B: To login as a STUDENT (linked to Zakir Jarir profile)
+-- 1. Copy your User ID from "Authentication" -> "Users"
+-- 2. Run:
+UPDATE students SET user_id = 'c22ba2c9-2ed7-4a6c-b93f-4157fea713b4' WHERE roll = '101';
