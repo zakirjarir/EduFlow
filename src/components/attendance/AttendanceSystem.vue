@@ -25,13 +25,23 @@ const selectedDate = ref(format(new Date(), 'yyyy-MM-dd'));
 const search = ref('');
 const activeMode = ref<'list' | 'qr' | 'face'>('list');
 
+// ✅ Fix snake_case -> camelCase from Supabase
+const normalizeAttendance = (a: any): AttendanceRecord => ({
+  id: a.id,
+  studentId: a.studentId || a.student_id,
+  date: a.date,
+  status: a.status,
+  markedBy: a.markedBy || a.marked_by,
+  timestamp: a.timestamp,
+});
+
 const loadData = async () => {
   const [s, a] = await Promise.all([
     api.students.getAll(),
     api.attendance.getByDate(selectedDate.value)
   ]);
   students.value = s;
-  attendance.value = a;
+  attendance.value = a.map(normalizeAttendance);
 };
 
 onMounted(loadData);
@@ -56,10 +66,10 @@ const getStatus = (studentId: string) => {
   return attendance.value.find(a => a.studentId === studentId)?.status;
 };
 
-const filteredStudents = computed(() => students.value.filter(s => 
-  s.name.toLowerCase().includes(search.value.toLowerCase()) ||
-  s.roll.includes(search.value)
-));
+const filteredStudents = computed(() => students.value.filter(s => {
+  const q = search.value.trim().toLowerCase();
+  return !q || s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q);
+}));
 
 const stats = computed(() => ({
   total: students.value.length,
@@ -78,6 +88,7 @@ const changeDate = (days: number) => {
 
 <template>
   <div class="p-4 sm:p-8 space-y-6">
+    <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 sm:p-6 rounded-3xl border border-gray-100 shadow-sm">
       <div class="flex items-center gap-4">
         <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
@@ -141,6 +152,7 @@ const changeDate = (days: number) => {
 
     <!-- Mode: List Display -->
     <div v-else class="space-y-6">
+      <!-- Stats -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1 relative z-10">Total Students</p>
@@ -161,6 +173,7 @@ const changeDate = (days: number) => {
         </div>
       </div>
 
+      <!-- Table -->
       <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100 bg-gray-50/30">
           <div class="relative">
@@ -184,48 +197,78 @@ const changeDate = (days: number) => {
                 <th class="px-6 sm:px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-indigo-50/30 transition-colors group">
+            <tbody class="divide-y divide-gray-50">
+              <tr
+                v-for="student in filteredStudents"
+                :key="student.id"
+                class="transition-all duration-200"
+                :class="
+                  getStatus(student.id) === 'present' ? 'bg-emerald-50 hover:bg-emerald-100/70' :
+                  getStatus(student.id) === 'absent'  ? 'bg-red-50 hover:bg-red-100/70' :
+                  getStatus(student.id) === 'late'    ? 'bg-amber-50 hover:bg-amber-100/70' :
+                  'bg-white hover:bg-gray-50'
+                "
+              >
+                <!-- Student Info -->
                 <td class="px-6 sm:px-8 py-4 sm:py-5">
-                   <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all text-xs sm:text-base shrink-0">
-                        {{ student.name.charAt(0) }}
-                      </div>
-                      <div class="min-w-0">
-                        <span class="font-black text-gray-900 block truncate text-sm sm:text-base">{{ student.name }}</span>
-                        <span class="sm:hidden text-[10px] text-gray-400 font-bold uppercase tracking-widest">#{{ student.roll }}</span>
-                      </div>
-                   </div>
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center font-black text-sm ring-2 transition-all"
+                      :class="
+                        getStatus(student.id) === 'present' ? 'bg-emerald-200 text-emerald-800 ring-emerald-400' :
+                        getStatus(student.id) === 'absent'  ? 'bg-red-200 text-red-800 ring-red-400' :
+                        getStatus(student.id) === 'late'    ? 'bg-amber-200 text-amber-800 ring-amber-400' :
+                        'bg-gray-100 text-gray-400 ring-gray-200'
+                      "
+                    >
+                      <img v-if="student.imageUrl" :src="student.imageUrl" :alt="student.name" class="w-full h-full object-cover" />
+                      <span v-else>{{ student.name.charAt(0) }}</span>
+                    </div>
+                    <div class="min-w-0">
+                      <span class="font-black text-gray-900 block truncate text-sm">{{ student.name }}</span>
+                      <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">#{{ student.roll }}</span>
+                    </div>
+                  </div>
                 </td>
+
+                <!-- Roll (desktop) -->
                 <td class="hidden sm:table-cell px-8 py-5">
-                   <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg font-mono text-xs font-bold">{{ student.roll }}</span>
+                  <span class="px-3 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg font-mono text-xs font-bold">{{ student.roll }}</span>
                 </td>
+
+                <!-- Status Badge -->
                 <td class="px-6 sm:px-8 py-4 sm:py-5 text-center">
-                   <span :class="cn(
-                      'px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-2',
-                      getStatus(student.id) === 'present' ? 'bg-emerald-50 text-emerald-600' :
-                      getStatus(student.id) === 'absent' ? 'bg-red-50 text-red-600' :
-                      getStatus(student.id) === 'late' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
-                   )">
-                      <div v-if="getStatus(student.id)" class="hidden sm:block w-1.5 h-1.5 rounded-full bg-current"></div>
-                      {{ getStatus(student.id) ? (getStatus(student.id) === 'present' ? 'P' : getStatus(student.id) === 'absent' ? 'A' : 'L') : 'N/A' }}
-                      <span class="hidden sm:inline">{{ getStatus(student.id) ? '' : 'Mark' }}</span>
-                   </span>
+                  <span :class="cn(
+                    'px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-1.5',
+                    getStatus(student.id) === 'present' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200' :
+                    getStatus(student.id) === 'absent'  ? 'bg-red-600 text-white shadow-sm shadow-red-200' :
+                    getStatus(student.id) === 'late'    ? 'bg-amber-500 text-white shadow-sm shadow-amber-200' :
+                    'bg-gray-200 text-gray-500'
+                  )">
+                    <div class="w-1.5 h-1.5 rounded-full bg-white/60 hidden sm:block"></div>
+                    <span class="hidden sm:inline">{{ getStatus(student.id) === 'present' ? 'Present' : getStatus(student.id) === 'absent' ? 'Absent' : getStatus(student.id) === 'late' ? 'Late' : 'N/A' }}</span>
+                    <span class="sm:hidden">{{ getStatus(student.id) === 'present' ? 'P' : getStatus(student.id) === 'absent' ? 'A' : getStatus(student.id) === 'late' ? 'L' : '—' }}</span>
+                  </span>
                 </td>
+
+                <!-- Action Buttons -->
                 <td class="px-6 sm:px-8 py-4 sm:py-5 text-right">
-                  <div class="flex justify-end gap-1 sm:gap-3">
-                    <button 
+                  <div class="flex justify-end gap-1.5 sm:gap-2">
+                    <button
                       @click="handleMark(student.id, 'present')"
-                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'present' ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')"
-                    ><CheckCircle2 :size="16" class="sm:hidden" /><CheckCircle2 :size="18" class="hidden sm:block" /></button>
-                    <button 
+                      title="Present"
+                      :class="cn('p-2 sm:p-2.5 rounded-xl transition-all', getStatus(student.id) === 'present' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-300 scale-110' : 'bg-white border border-emerald-200 text-emerald-500 hover:bg-emerald-50')"
+                    ><CheckCircle2 :size="17" /></button>
+                    <button
                       @click="handleMark(student.id, 'absent')"
-                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'absent' ? 'bg-red-600 text-white shadow-red-200' : 'bg-red-50 text-red-600 hover:bg-red-100')"
-                    ><XCircle :size="16" class="sm:hidden" /><XCircle :size="18" class="hidden sm:block" /></button>
-                    <button 
+                      title="Absent"
+                      :class="cn('p-2 sm:p-2.5 rounded-xl transition-all', getStatus(student.id) === 'absent' ? 'bg-red-600 text-white shadow-md shadow-red-300 scale-110' : 'bg-white border border-red-200 text-red-500 hover:bg-red-50')"
+                    ><XCircle :size="17" /></button>
+                    <button
                       @click="handleMark(student.id, 'late')"
-                      :class="cn('p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all shadow-sm', getStatus(student.id) === 'late' ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')"
-                    ><Clock :size="16" class="sm:hidden" /><Clock :size="18" class="hidden sm:block" /></button>
+                      title="Late"
+                      :class="cn('p-2 sm:p-2.5 rounded-xl transition-all', getStatus(student.id) === 'late' ? 'bg-amber-500 text-white shadow-md shadow-amber-300 scale-110' : 'bg-white border border-amber-200 text-amber-500 hover:bg-amber-50')"
+                    ><Clock :size="17" /></button>
                   </div>
                 </td>
               </tr>

@@ -29,7 +29,6 @@ const MENU_ITEMS = [
   { id: 'attendance', label: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
   { id: 'qr-scan', label: 'QR Scanner', icon: QrCode, path: '/qr-scan' },
   { id: 'fees', label: 'Fees', icon: ReceiptIndianRupee, path: '/fees' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 const handleLogout = async () => {
